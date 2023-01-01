@@ -43,6 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Implements access to dope4j functionality from command-line.
+ *
  * @author lambdaprime intid@protonmail.com
  */
 public class DeepObjectPoseEstimationApp {

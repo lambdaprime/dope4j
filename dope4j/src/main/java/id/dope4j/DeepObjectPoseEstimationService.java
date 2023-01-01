@@ -61,6 +61,10 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
     /** Perform batch inference */
     public List<T> analyze(List<Path> images) throws DopeException {
         startLazy();
+        if (images.isEmpty()) {
+            LOGGER.warn("Received empty list of images, nothing to analyze");
+            return List.of();
+        }
         try {
             var batch =
                     images.stream()
@@ -70,8 +74,7 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
                                             return new InputImage(imagePath);
                                         } catch (IOException e) {
                                             LOGGER.warn(
-                                                    "Ignoring file {} due to error: {}: {},"
-                                                            + " ignoring it",
+                                                    "Ignoring file {} due to an error: {}: {}",
                                                     imagePath,
                                                     e.getClass(),
                                                     e);

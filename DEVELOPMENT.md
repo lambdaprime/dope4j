@@ -4,8 +4,6 @@ Building  module locally and making changes to it (this is optional and not inte
 
 ## With Gradle
 
-Using Maven:
-
 ``` bash
 gradle clean build
 ```
@@ -19,14 +17,6 @@ gradle eclipse
 ```
 
 - Import them into Eclipse
-
-## Standalone application
-
-To build standalone application which would include all its dependencies:
-
-``` bash
-mvn clean install -Papp
-```
 
 # Release steps
 
