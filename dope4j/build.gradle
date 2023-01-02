@@ -15,11 +15,9 @@ plugins {
 apply plugin : 'eclipse'
 
 dependencies {
-  implementation "com.microsoft.onnxruntime:onnxruntime_gpu:1.12.1"
-  implementation "ai.djl.pytorch:pytorch-native-cu117:1.13.0:linux-x86_64"
-
   implementation "io.github.lambdaprime:id.xfunction:20.0-SNAPSHOT"
   implementation "io.github.lambdaprime:matcv:3.0-SNAPSHOT"
+  implementation "io.github.lambdaprime:depresolve:3.0-SNAPSHOT"
   implementation "org.openpnp:opencv:4.6.0-0"
 
   def djlVersion = "0.20.0"
@@ -32,6 +30,8 @@ dependencies {
   implementation("ai.djl.onnxruntime:onnxruntime-engine:${djlVersion}") {
     exclude group: "com.microsoft.onnxruntime", module: "onnxruntime"
   }
+  implementation "com.microsoft.onnxruntime:onnxruntime_gpu:1.12.1"
+  implementation "ai.djl.pytorch:pytorch-native-cu117:1.13.0:linux-x86_64"
   
   addDependencies(this, ["implementation"], "1.7.36", [
     "org.slf4j:slf4j-api",
@@ -63,7 +63,14 @@ task createRelease(type: Zip) {
 }
 
 task copyLibs(type: Copy) {
-  from configurations.customConfig
+  from configurations.customConfig  {
+    // These are mostly dependencies which would increase release
+    // package file size dramatically (onnxruntime_gpu and others).
+    // Such dependencies are provided using depresolve (see Launcher.java)
+    exclude group: "org.openpnp", module: "opencv"
+    exclude group: "com.microsoft.onnxruntime", module: "onnxruntime_gpu"
+    exclude group: "ai.djl.pytorch", module: "pytorch-native-cu117"
+  }
   from jar.archiveFile
   into "${packageDir}/libs"
 }
@@ -74,9 +81,13 @@ task copyReadme(type: Copy) {
   rename ("README.md", "README-${projectName}.md")
 }
 
+// overwrite template README which comes from resources folder
+jar.dependsOn copyReadme
+
 task createPackage(type: Copy, dependsOn: copyLibs) {
   from "${project.rootDir}/README.md"
   from "${project.rootDir}/LICENSE-2.0.txt"
+  from file("$projectDir/src/dope4j")
   into packageDir
 }
 
@@ -85,11 +96,9 @@ task cleanRelease(type: Delete) {
   delete "$projectDir/release"
 }
 
-compileJava.dependsOn copyReadme
 createRelease.dependsOn createPackage
 assemble.dependsOn createRelease
 clean.dependsOn cleanRelease
-processResources.dependsOn copyReadme
 
 // run spotless and format code before the build
 classes.dependsOn spotlessApply

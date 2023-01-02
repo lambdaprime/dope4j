@@ -1,0 +1,72 @@
+#!/usr/bin/env -S java --source 11
+
+import java.util.*;
+import java.util.stream.*;
+import java.io.*;
+import java.nio.file.*;
+
+/**
+ * Cross-platform launcher script for dope4j.
+ * 
+ * @author lambdaprime intid@protonmail.com
+ */
+ class Launcher {
+
+    static final String MAIN_CLASS = "id.dope4j.DeepObjectPoseEstimationApp";
+    
+    /**
+     * These are mostly dependencies which would increase release
+     * package file size dramatically (more than 1GB).
+     * To avoid this we use depresolve: it will first try to see if these
+     * dependencies already present in local Maven repository. If not,
+     * depresolve will download them and save to local Maven repository.
+     * That way they can be shared with other Java applications and save space.
+     */
+    static final List<String> RUNTIME_DEPENDENCIES = List.of(
+        "com.microsoft.onnxruntime:onnxruntime_gpu:1.12.1",
+        "ai.djl.pytorch:pytorch-native-cu117:jar:linux-x86_64:1.13.0",
+        "org.openpnp:opencv:4.6.0-0"
+    );
+
+    /**
+     * Parent folder of this script
+     */
+    static Path BASE_DIR;
+
+    static void fail(String msg) {
+        System.err.println(msg);
+        System.exit(1);
+    }
+
+    /**
+     * Use depresolve to download dependencies if they are missing in local Maven repository and
+     * return classpath string.
+     */
+    static String resolveRuntimeDependencies() throws Exception {
+        var libsClasspathEntry = BASE_DIR.resolve("libs").resolve("*").toString();
+        var cmdList = new ArrayList<String>(List.of(
+            "java", "-cp", libsClasspathEntry, "id.depresolve.app.Main"));
+        cmdList.addAll(RUNTIME_DEPENDENCIES);
+        var proc = new ProcessBuilder(cmdList).redirectError(ProcessBuilder.Redirect.INHERIT).start();
+        var out = new BufferedReader(new InputStreamReader(proc.getInputStream())).lines();
+        var code = proc.waitFor();
+        if (code != 0) fail("Fail to resolve dependencies: depresolve return code " + code);
+        
+        return Stream.concat(out, Stream.of(libsClasspathEntry))
+            .collect(Collectors.joining(System.getProperty("path.separator", ":")));
+    }
+
+    public static void main(String... args) throws Exception {
+        if (Runtime.version().feature() < 17)
+            fail("Java 17 is required");
+
+        BASE_DIR = Paths.get(Launcher.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+            .getParent();
+        var classpath = resolveRuntimeDependencies();
+        var argsList = new ArrayList<String>(List.of(
+            "java", "-cp", classpath, MAIN_CLASS));
+        argsList.addAll(Arrays.asList(args));
+        System.out.println("Run command: " + argsList);
+        System.exit(new ProcessBuilder(argsList).inheritIO().start().waitFor());
+    }
+}
