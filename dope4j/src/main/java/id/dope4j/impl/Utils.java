@@ -142,7 +142,7 @@ public class Utils {
     }
 
     /** Draws markers at the given points */
-    public static void drawLandmark(Mat image, List<Point> points) {
+    public static void drawKeypoints(Mat image, List<Point> points) {
         Preconditions.equals(DopeConstants.IMAGE_HEIGHT, image.rows(), "Image height is wrong");
         Preconditions.equals(DopeConstants.IMAGE_WIDTH, image.cols(), "Image width is wrong");
         points.forEach(

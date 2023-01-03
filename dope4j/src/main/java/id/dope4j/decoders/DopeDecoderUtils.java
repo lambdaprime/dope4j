@@ -73,7 +73,7 @@ public class DopeDecoderUtils {
     }
 
     /**
-     * Keypoints are object vertices + center points. They all part of Belief Maps. There are one
+     * Keypoints are object vertices + center points. They all part of Belief Maps. There is one
      * Belief Map per vertex. Center point beliefs are on the last Belief Map.
      *
      * <p>{@link DopeConstants#PEAK_THRESHOLD} allows to configure what predictions are ignored and

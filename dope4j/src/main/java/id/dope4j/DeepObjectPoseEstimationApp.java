@@ -19,10 +19,8 @@ package id.dope4j;
 
 import static id.dope4j.impl.Utils.debugNDArray;
 
-import ai.djl.engine.Engine;
 import ai.djl.ndarray.NDArray;
 import id.dope4j.decoders.DopeDecoderUtils;
-import id.dope4j.decoders.SaveStateDecoder;
 import id.dope4j.impl.FileMapper;
 import id.dope4j.impl.Utils;
 import id.dope4j.io.InputImage;
@@ -36,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import nu.pattern.OpenCV;
 import org.opencv.core.Mat;
 import org.opencv.highgui.HighGui;
@@ -67,51 +66,45 @@ public class DeepObjectPoseEstimationApp {
         new ResourceUtils().readResourceAsStream("README-dope4j.md").forEach(System.out::println);
     }
 
-    public void debugDecoder(InputImage inputImage, NDArray outputTensor) {
+    public Optional<Void> process(InputImage inputImage, NDArray outputTensor) {
         LOGGER.debug("Input image: {}", inputImage);
         debugNDArray("Input tensor", outputTensor, "0:3, 0:3, 0:3");
         var output = decoderUtils.readDopeOutput(outputTensor);
-        var peaks =
-                decoderUtils
-                        .findKeypoints(output)
-                        .subList(
-                                DopeConstants.BELIEF_MAPS_COUNT - 1,
-                                DopeConstants.BELIEF_MAPS_COUNT);
-        var landmark = peaks.stream().flatMap(List::stream).toList();
-        landmark = Utils.scalePoints(landmark.stream(), DopeConstants.SCALE_FACTOR);
+        var keypoints = decoderUtils.findKeypoints(output);
+        keypoints =
+                keypoints.stream()
+                        .map(l -> Utils.scalePoints(l.stream(), DopeConstants.SCALE_FACTOR))
+                        .toList();
         Mat mat = (Mat) inputImage.image().getWrappedImage();
-        Utils.drawLandmark(mat, landmark);
-        Utils.drawAffinityFields(mat, output);
+        var verticesBeliefs = keypoints.subList(0, DopeConstants.BELIEF_MAPS_COUNT - 1);
+        if (commandOptions.isOptionTrue("showVerticesBeliefs"))
+            verticesBeliefs.forEach(l -> Utils.drawKeypoints(mat, l));
+        var centerpointBeliefs = keypoints.get(DopeConstants.BELIEF_MAPS_COUNT - 1);
+        if (commandOptions.isOptionTrue("showCenterPointBeliefs"))
+            Utils.drawKeypoints(mat, centerpointBeliefs);
         HighGui.imshow(inputImage.toString(), mat);
         HighGui.waitKey();
+        return Optional.empty();
     }
 
     public void run() throws Exception {
-        XLogger.load();
-        var modelUrl = commandOptions.getOption("modelUrl");
-        var imagePath = Paths.get(commandOptions.getOption("imagePath"));
+        XLogger.load("logging-dope4j.properties");
+        var modelUrl = commandOptions.getRequiredOption("modelUrl");
+        var imagePath = Paths.get(commandOptions.getRequiredOption("imagePath"));
         if (!imagePath.toFile().exists())
             throw new RuntimeException("Path does not exist: " + imagePath);
         var imageFilesList = listImageFiles(imagePath);
         if (imageFilesList.isEmpty())
             throw new RuntimeException("No image files found in " + imagePath);
-        try (var service =
-                new DeepObjectPoseEstimationService<>(modelUrl, new SaveStateDecoder())) {
-            imageFilesList.forEach(service::analyze);
+        try (var service = new DeepObjectPoseEstimationService<Void>(modelUrl, this::process)) {
+            for (var imageFile : imageFilesList) {
+                try {
+                    service.analyze(imageFile);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to decode image " + imageFile + ": ", e);
+                }
+            }
         }
-
-        imageFilesList.forEach(
-                imageFile -> {
-                    try {
-                        var tensor =
-                                NDArray.decode(
-                                        Engine.getInstance().newBaseManager(),
-                                        Files.readAllBytes(mapper.getTensorFile(imageFile)));
-                        debugDecoder(new InputImage(imageFile), tensor);
-                    } catch (Exception e) {
-                        LOGGER.error("Failed to decode image " + imageFile + ": ", e);
-                    }
-                });
     }
 
     private List<Path> listImageFiles(Path imagePath) throws IOException {
