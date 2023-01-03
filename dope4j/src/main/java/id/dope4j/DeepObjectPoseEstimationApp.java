@@ -94,15 +94,26 @@ public class DeepObjectPoseEstimationApp {
                         .toList();
         Mat mat = (Mat) inputImage.image().getWrappedImage();
         var verticesBeliefs = keypoints.subList(0, DopeConstants.BELIEF_MAPS_COUNT - 1);
-        if (commandOptions.isOptionTrue("showVerticesBeliefs"))
+        LOGGER.debug("Detected vertices: {}", verticesBeliefs);
+        var showImage = false;
+        if (commandOptions.isOptionTrue("showVerticesBeliefs")) {
             verticesBeliefs.forEach(l -> Utils.drawKeypoints(mat, l));
+            showImage = true;
+        }
         var centerpointBeliefs = keypoints.get(DopeConstants.BELIEF_MAPS_COUNT - 1);
-        if (commandOptions.isOptionTrue("showCenterPointBeliefs"))
+        LOGGER.debug("Detected center points: {}", centerpointBeliefs);
+        if (commandOptions.isOptionTrue("showCenterPointBeliefs")) {
             Utils.drawKeypoints(mat, centerpointBeliefs);
-        if (commandOptions.isOptionTrue("showAffinityFields"))
+            showImage = true;
+        }
+        if (commandOptions.isOptionTrue("showAffinityFields")) {
             Utils.drawAffinityFields(mat, output);
-        HighGui.imshow(inputImage.toString(), mat);
-        HighGui.waitKey();
+            showImage = true;
+        }
+        if (showImage) {
+            HighGui.imshow(inputImage.toString(), mat);
+            HighGui.waitKey();
+        }
         return Optional.empty();
     }
 
@@ -125,6 +136,7 @@ public class DeepObjectPoseEstimationApp {
         if (!imagePath.toFile().exists())
             throw new RuntimeException("Path does not exist: " + imagePath);
         var imageFilesList = listImageFiles(imagePath);
+        LOGGER.info("Found {} images to run inference on", imageFilesList.size());
         if (imageFilesList.isEmpty())
             throw new RuntimeException("No image files found in " + imagePath);
         try (var service = new DeepObjectPoseEstimationService<Void>(modelUrl, this::process)) {
@@ -152,9 +164,9 @@ public class DeepObjectPoseEstimationApp {
     }
 
     private List<Path> listImageFiles(Path imagePath) throws IOException {
-        return Files.walk(imagePath, 1)
-                .filter(FilePredicates.anyExtensionOf("png", "jpg"))
-                .toList();
+        var depth = commandOptions.isOptionTrue("recursiveScan") ? Integer.MAX_VALUE : 1;
+        var regexp = commandOptions.getOption("imageFileRegexp").orElse(".*\\.(png|jpg)");
+        return Files.walk(imagePath, depth).filter(FilePredicates.match(regexp)).toList();
     }
 
     public static void main(String[] args) throws Exception {
@@ -174,8 +186,7 @@ public class DeepObjectPoseEstimationApp {
                 e.printStackTrace();
             }
             if (options.isOptionTrue("totalRunTime"))
-                System.err.println(
-                        "Total execution time: " + Duration.between(startAt, Instant.now()));
+                LOGGER.debug("Total execution time: {}", Duration.between(startAt, Instant.now()));
         }
         System.exit(code);
     }

@@ -106,7 +106,7 @@ public class DopeDecoderUtils {
                                 "Belief map number %s, peak threshold %s", i, PEAK_THRESHOLD));
             allPeaks.add(peaks.stream().<Point>map(p -> new ExPoint(p.x, p.y)).toList());
         }
-        LOGGER.debug("Extracted peaks: {}", allPeaks);
+        LOGGER.debug("Detected keypoints: {}", allPeaks);
         return allPeaks;
     }
 }
