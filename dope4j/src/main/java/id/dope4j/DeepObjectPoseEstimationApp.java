@@ -87,7 +87,13 @@ public class DeepObjectPoseEstimationApp {
                             saveState.decode(inputImage, outputTensor);
                         });
         var output = decoderUtils.readDopeOutput(outputTensor);
-        var keypoints = decoderUtils.findKeypoints(output);
+        var keypoints =
+                decoderUtils.findKeypoints(
+                        output,
+                        commandOptions
+                                .getOption("threshold")
+                                .map(Double::parseDouble)
+                                .orElse(DopeConstants.DEFAULT_PEAK_THRESHOLD));
         keypoints =
                 keypoints.stream()
                         .map(l -> Utils.scalePoints(l.stream(), DopeConstants.SCALE_FACTOR))

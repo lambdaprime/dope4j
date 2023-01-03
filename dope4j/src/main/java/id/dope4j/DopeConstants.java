@@ -30,6 +30,6 @@ public interface DopeConstants {
     int TENSOR_COLS = 80;
     int[] BELIEF_SHAPE = {TENSOR_ROWS, TENSOR_COLS};
     double GAUSSIAN_SIGMA = 3.0;
-    double PEAK_THRESHOLD = 0.01;
+    double DEFAULT_PEAK_THRESHOLD = 0.01;
     int SCALE_FACTOR = 8;
 }

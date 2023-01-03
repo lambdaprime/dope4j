@@ -81,7 +81,8 @@ public class DopeDecoderUtils {
      *
      * @throws NoKeypointsFoundException
      */
-    public List<List<Point>> findKeypoints(OutputTensor output) throws NoKeypointsFoundException {
+    public List<List<Point>> findKeypoints(OutputTensor output, double threshold)
+            throws NoKeypointsFoundException {
         var beliefMaps = output.beliefMaps();
         var allPeaks = new ArrayList<List<Point>>();
         for (int i = 0; i < BELIEF_MAPS_COUNT; i++) {
@@ -99,11 +100,10 @@ public class DopeDecoderUtils {
                     GAUSSIAN_SIGMA,
                     Core.BORDER_REFLECT);
             if (i == 0) utils.debugMat("Blurred belief map {}", blurred, new Rect(0, 0, 3, 3));
-            var peaks = utils.findPeaks(blurred, PEAK_THRESHOLD);
+            var peaks = utils.findPeaks(blurred, threshold);
             if (peaks.isEmpty())
                 throw new NoKeypointsFoundException(
-                        String.format(
-                                "Belief map number %s, peak threshold %s", i, PEAK_THRESHOLD));
+                        String.format("Belief map number %s, peak threshold %s", i, threshold));
             allPeaks.add(peaks.stream().<Point>map(p -> new ExPoint(p.x, p.y)).toList());
         }
         LOGGER.debug("Detected keypoints: {}", allPeaks);

@@ -47,6 +47,8 @@ Optional options:
 
 `-imageFileRegexp=<regexp>` - when `-imagePath` points to a folder then this regular expression will be used to filter images. Default is ".*\.(png|jpg)" which means all non "png" or "jpg" images are ignored.
 
+`-threshold=<double>` - set threshold value which is used to filter the keypoints. Default is "0.01".
+
 `-totalRunTime=<true|false>` - print command total execution time when command finishes.
 
 # Contributors
