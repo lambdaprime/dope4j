@@ -82,6 +82,8 @@ public class DeepObjectPoseEstimationApp {
         var centerpointBeliefs = keypoints.get(DopeConstants.BELIEF_MAPS_COUNT - 1);
         if (commandOptions.isOptionTrue("showCenterPointBeliefs"))
             Utils.drawKeypoints(mat, centerpointBeliefs);
+        if (commandOptions.isOptionTrue("showAffinityFields"))
+            Utils.drawAffinityFields(mat, output);
         HighGui.imshow(inputImage.toString(), mat);
         HighGui.waitKey();
         return Optional.empty();

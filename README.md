@@ -27,9 +27,11 @@ Available options:
 
 `-imagePath=<path>` - path to input image file or folder. In case of folder `dope4j` will search it for image files
 
-`-showVerticesBeliefs=<true|false>` - for each image show all vertices detected during inference step. They all part of Belief Maps. There is one Belief Map per vertex.
+`-showVerticesBeliefs=<true|false>` - for each image show all 8 vertices detected during inference step. They all part of Belief Maps. There is one Belief Map per vertex.
 
-`-showCenterPointBeliefs=<true|false>` - for each image show all center points detected during inference step. They all part of single Belief Map.
+`-showCenterPointBeliefs=<true|false>` - for each image show all N center points detected during inference step. They all part of single Belief Map.
+
+`-showAffinityFields=<true|false>` - for each image show all Affinity Fields detected for all 8 vertices during inference step. Every Affinity Field is a vector field where each vector points towards center point.
 
 # Documentation
 
