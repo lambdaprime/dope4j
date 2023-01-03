@@ -45,6 +45,11 @@ public record InputImage(Image image, Optional<Path> path) {
                 path);
     }
 
+    /** Preprocessed image */
+    public Image image() {
+        return image;
+    }
+
     /** Path to the image if it comes from file system. */
     public Optional<Path> path() {
         return path;

@@ -19,9 +19,11 @@ package id.dope4j;
 
 import static id.dope4j.impl.Utils.debugNDArray;
 
+import ai.djl.engine.Engine;
 import ai.djl.ndarray.NDArray;
 import id.dope4j.decoders.DopeDecoderUtils;
-import id.dope4j.impl.FileMapper;
+import id.dope4j.decoders.SaveStateDecoder;
+import id.dope4j.impl.CacheFileMapper;
 import id.dope4j.impl.Utils;
 import id.dope4j.io.InputImage;
 import id.xfunction.ResourceUtils;
@@ -29,10 +31,13 @@ import id.xfunction.cli.ArgumentParsingException;
 import id.xfunction.cli.CommandOptions;
 import id.xfunction.logging.XLogger;
 import id.xfunction.nio.file.FilePredicates;
+import id.xfunction.nio.file.XFiles;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import nu.pattern.OpenCV;
@@ -49,10 +54,12 @@ import org.slf4j.LoggerFactory;
 public class DeepObjectPoseEstimationApp {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeepObjectPoseEstimationApp.class);
-
     private static final DopeDecoderUtils decoderUtils = new DopeDecoderUtils();
-    private static final FileMapper mapper = new FileMapper();
+    private static final String CACHE_FOLDER_NAME = "_cache_dope4j";
+    private CacheFileMapper mapper;
     private CommandOptions commandOptions;
+    private SaveStateDecoder saveState;
+    private boolean isCacheEnabled;
 
     static {
         OpenCV.loadLocally();
@@ -69,6 +76,16 @@ public class DeepObjectPoseEstimationApp {
     public Optional<Void> process(InputImage inputImage, NDArray outputTensor) {
         LOGGER.debug("Input image: {}", inputImage);
         debugNDArray("Input tensor", outputTensor, "0:3, 0:3, 0:3");
+        inputImage
+                .path()
+                .ifPresent(
+                        imageFile -> {
+                            if (!isCacheEnabled) return;
+                            var tensorFile = mapper.getTensorFile(imageFile);
+                            if (tensorFile.toFile().exists()) return;
+                            LOGGER.debug("Adding image data for {} to cache", imageFile);
+                            saveState.decode(inputImage, outputTensor);
+                        });
         var output = decoderUtils.readDopeOutput(outputTensor);
         var keypoints = decoderUtils.findKeypoints(output);
         keypoints =
@@ -92,7 +109,19 @@ public class DeepObjectPoseEstimationApp {
     public void run() throws Exception {
         XLogger.load("logging-dope4j.properties");
         var modelUrl = commandOptions.getRequiredOption("modelUrl");
+        LOGGER.info("Model URL: {}", modelUrl);
         var imagePath = Paths.get(commandOptions.getRequiredOption("imagePath"));
+        LOGGER.info("Image path: {}", imagePath);
+        isCacheEnabled = commandOptions.isOptionTrue("cache");
+        var cacheFolder =
+                commandOptions
+                        .getOption("cacheFolder")
+                        .map(s -> Paths.get(s))
+                        .or(() -> XFiles.TEMP_FOLDER.map(p -> p.resolve(CACHE_FOLDER_NAME)))
+                        .orElse(Paths.get(CACHE_FOLDER_NAME));
+        LOGGER.info("Cache folder: {}", cacheFolder);
+        mapper = new CacheFileMapper(cacheFolder);
+        saveState = new SaveStateDecoder(mapper);
         if (!imagePath.toFile().exists())
             throw new RuntimeException("Path does not exist: " + imagePath);
         var imageFilesList = listImageFiles(imagePath);
@@ -101,12 +130,25 @@ public class DeepObjectPoseEstimationApp {
         try (var service = new DeepObjectPoseEstimationService<Void>(modelUrl, this::process)) {
             for (var imageFile : imageFilesList) {
                 try {
+                    if (isCacheEnabled && processFromCache(imageFile)) continue;
                     service.analyze(imageFile);
                 } catch (Exception e) {
                     LOGGER.error("Failed to decode image " + imageFile + ": ", e);
                 }
             }
         }
+    }
+
+    private boolean processFromCache(Path imageFile) throws IOException {
+        var tensorFile = mapper.getTensorFile(imageFile);
+        if (!tensorFile.toFile().exists()) return false;
+        LOGGER.debug(
+                "Image data {} found in cache, do not run inference and use it instead", imageFile);
+        var tensor =
+                NDArray.decode(
+                        Engine.getInstance().newBaseManager(), Files.readAllBytes(tensorFile));
+        process(new InputImage(imageFile), tensor);
+        return true;
     }
 
     private List<Path> listImageFiles(Path imagePath) throws IOException {
@@ -120,8 +162,10 @@ public class DeepObjectPoseEstimationApp {
         if (args.length < 1) {
             usage();
         } else {
+            var options = CommandOptions.collectOptions(args);
+            var startAt = Instant.now();
             try {
-                new DeepObjectPoseEstimationApp(CommandOptions.collectOptions(args)).run();
+                new DeepObjectPoseEstimationApp(options).run();
                 code = 0;
             } catch (ArgumentParsingException e) {
                 System.err.println(e.getMessage());
@@ -129,6 +173,9 @@ public class DeepObjectPoseEstimationApp {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            if (options.isOptionTrue("totalRunTime"))
+                System.err.println(
+                        "Total execution time: " + Duration.between(startAt, Instant.now()));
         }
         System.exit(code);
     }

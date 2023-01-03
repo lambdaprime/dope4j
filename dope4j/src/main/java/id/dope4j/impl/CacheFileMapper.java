@@ -18,22 +18,27 @@
 package id.dope4j.impl;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
- * Maps file names to their preprocessed versions which are inside subfolder {@link #SUBFOLDER}
+ * Maps file names to their preprocessed versions inside cache folder.
+ *
+ * <p>Thread safe.
  *
  * @author lambdaprime intid@protonmail.com
  */
-public class FileMapper {
+public class CacheFileMapper {
 
-    private static final String SUBFOLDER = "_cached";
+    private Path cacheHome;
+
+    public CacheFileMapper(Path cacheHome) {
+        this.cacheHome = cacheHome;
+    }
 
     public Path getTensorFile(Path imageFile) {
-        return imageFile.resolveSibling(Paths.get(SUBFOLDER, imageFile.getFileName() + ".tensor"));
+        return imageFile.resolveSibling(cacheHome.resolve(imageFile.getFileName() + ".tensor"));
     }
 
     public Path getProcessedImageFile(Path imageFile) {
-        return imageFile.resolveSibling(Paths.get(SUBFOLDER, imageFile.getFileName() + ".png"));
+        return imageFile.resolveSibling(cacheHome.resolve(imageFile.getFileName() + ".png"));
     }
 }

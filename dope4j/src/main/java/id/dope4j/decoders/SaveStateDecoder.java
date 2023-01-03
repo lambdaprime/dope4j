@@ -20,7 +20,7 @@ package id.dope4j.decoders;
 import ai.djl.modality.cv.Image;
 import ai.djl.ndarray.NDArray;
 import id.dope4j.exceptions.DopeException;
-import id.dope4j.impl.FileMapper;
+import id.dope4j.impl.CacheFileMapper;
 import id.dope4j.io.InputImage;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,12 +33,18 @@ import org.slf4j.LoggerFactory;
 /**
  * Saves preprocessed input image with the output tensor into file system.
  *
+ * <p>Thread safe.
+ *
  * @author lambdaprime intid@protonmail.com
  */
 public class SaveStateDecoder implements DopeDecoder<Void> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SaveStateDecoder.class);
-    private FileMapper mapper = new FileMapper();
+    private CacheFileMapper mapper;
+
+    public SaveStateDecoder(CacheFileMapper mapper) {
+        this.mapper = mapper;
+    }
 
     @Override
     public Optional<Void> decode(InputImage inputImage, NDArray outputTensor) throws DopeException {
