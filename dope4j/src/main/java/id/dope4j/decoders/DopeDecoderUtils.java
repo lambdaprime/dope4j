@@ -17,20 +17,31 @@
  */
 package id.dope4j.decoders;
 
-import static id.dope4j.DopeConstants.*;
-import static id.dope4j.impl.Utils.*;
+import static id.dope4j.DopeConstants.BELIEF_MAPS_COUNT;
+import static id.dope4j.DopeConstants.BELIEF_SHAPE;
+import static id.dope4j.DopeConstants.GAUSSIAN_SIGMA;
+import static id.dope4j.DopeConstants.TENSOR_COLS;
+import static id.dope4j.DopeConstants.TENSOR_LENGTH;
+import static id.dope4j.DopeConstants.TENSOR_ROWS;
+import static id.dope4j.impl.Utils.debugNDArray;
 
-import ai.djl.modality.cv.output.Point;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.types.Shape;
+import id.deeplearningutils.modality.cv.output.BoundingBox3d;
 import id.deeplearningutils.modality.cv.output.ExPoint;
 import id.dope4j.DopeConstants;
 import id.dope4j.exceptions.NoKeypointsFoundException;
+import id.dope4j.io.AffinityFields;
+import id.dope4j.io.OutputKeypoints;
+import id.dope4j.io.OutputObjects;
 import id.dope4j.io.OutputTensor;
 import id.matcv.MatUtils;
+import id.mathcalc.Vector2f;
 import id.xfunction.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
@@ -81,10 +92,10 @@ public class DopeDecoderUtils {
      *
      * @throws NoKeypointsFoundException
      */
-    public List<List<Point>> findKeypoints(OutputTensor output, double threshold)
+    public OutputKeypoints findKeypoints(OutputTensor output, double threshold)
             throws NoKeypointsFoundException {
         var beliefMaps = output.beliefMaps();
-        var allPeaks = new ArrayList<List<Point>>();
+        List<List<ExPoint>> allPeaks = new ArrayList<>();
         for (int i = 0; i < BELIEF_MAPS_COUNT; i++) {
             LOGGER.debug("Belief map shape: {}", beliefMaps.get(i).getShape());
             Mat belief = new MatOfFloat(beliefMaps.get(i).toFloatArray());
@@ -104,9 +115,57 @@ public class DopeDecoderUtils {
             if (peaks.isEmpty())
                 throw new NoKeypointsFoundException(
                         String.format("Belief map number %s, peak threshold %s", i, threshold));
-            allPeaks.add(peaks.stream().<Point>map(p -> new ExPoint(p.x, p.y)).toList());
+            allPeaks.add(peaks.stream().map(p -> new ExPoint(p.x, p.y)).toList());
         }
         LOGGER.debug("Detected keypoints: {}", allPeaks);
-        return allPeaks;
+
+        var verticesBeliefs = allPeaks.subList(0, DopeConstants.BELIEF_MAPS_COUNT - 1);
+        LOGGER.debug("Detected vertices: {}", verticesBeliefs);
+        var centerPointBeliefs = allPeaks.get(DopeConstants.BELIEF_MAPS_COUNT - 1);
+        LOGGER.debug("Detected center points: {}", centerPointBeliefs);
+        return new OutputKeypoints(verticesBeliefs, centerPointBeliefs);
+    }
+
+    /** Returns map of pairs: center point - [list of matched vertices] */
+    private Map<ExPoint, List<ExPoint>> matchCenterPointsWithVertices(
+            List<ExPoint> centerPoints,
+            List<List<ExPoint>> vertices,
+            AffinityFields affinityFields) {
+        Map<ExPoint, List<ExPoint>> objectsMap =
+                centerPoints.stream().collect(Collectors.toMap(i -> i, i -> new ArrayList<>()));
+        for (int beliefMapId = 0;
+                beliefMapId < DopeConstants.BELIEF_MAPS_COUNT - 1;
+                beliefMapId++) {
+            for (var vertex : vertices.get(beliefMapId)) {
+                double minDistance = Integer.MAX_VALUE;
+                ExPoint candidateCenterPoint = null;
+                for (var center : centerPoints) {
+                    var affinityVec = affinityFields.getValue(beliefMapId, vertex).normalize();
+                    var vec =
+                            new Vector2f(
+                                            (float) (center.getX() - vertex.getX()),
+                                            (float) (center.getY() - vertex.getY()))
+                                    .normalize();
+                    var angle = affinityVec.sub(vec).norm();
+                    var distance = vertex.distance(center);
+                    if (distance < minDistance) {
+                        candidateCenterPoint = center;
+                        minDistance = distance;
+                    }
+                }
+                objectsMap.get(candidateCenterPoint).add(vertex);
+            }
+        }
+        return objectsMap;
+    }
+
+    public OutputObjects findObjects(OutputKeypoints keypoints, AffinityFields affinityFields) {
+        var objectsMap =
+                matchCenterPointsWithVertices(
+                        keypoints.centerPoints(), keypoints.vertices(), affinityFields);
+        return new OutputObjects(
+                objectsMap.entrySet().stream()
+                        .map(e -> new BoundingBox3d(e.getKey(), e.getValue()))
+                        .toList());
     }
 }

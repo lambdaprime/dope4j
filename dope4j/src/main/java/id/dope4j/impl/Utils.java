@@ -19,7 +19,6 @@ package id.dope4j.impl;
 
 import ai.djl.MalformedModelException;
 import ai.djl.Model;
-import ai.djl.modality.cv.output.Landmark;
 import ai.djl.modality.cv.output.Point;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
@@ -28,15 +27,15 @@ import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
 import id.deeplearningutils.modality.cv.output.ExPoint;
 import id.dope4j.DopeConstants;
-import id.dope4j.io.OutputTensor;
+import id.dope4j.io.AffinityFields;
 import id.matcv.OpencvKit;
 import id.matcv.RgbColors;
 import id.xfunction.Preconditions;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
@@ -128,35 +127,38 @@ public class Utils {
         return model;
     }
 
-    public static List<Point> scalePoints(Stream<? extends Point> points, int scale) {
-        return points.<Point>map(p -> new ExPoint(p.getX() * scale, p.getY() * scale)).toList();
+    public static List<ExPoint> scalePoints(Stream<? extends Point> points, int scale) {
+        return points.map(p -> new ExPoint(p.getX() * scale, p.getY() * scale)).toList();
     }
 
-    public static Landmark scaleLandmark(Landmark landmark, int scale) {
-        return new Landmark(
-                landmark.getX() * scale,
-                landmark.getY() * scale,
-                landmark.getWidth() * scale,
-                landmark.getHeight() * scale,
-                scalePoints(StreamSupport.stream(landmark.getPath().spliterator(), false), scale));
-    }
+    //    public static Landmark scaleLandmark(Landmark landmark, int scale) {
+    //        return new Landmark(
+    //                landmark.getX() * scale,
+    //                landmark.getY() * scale,
+    //                landmark.getWidth() * scale,
+    //                landmark.getHeight() * scale,
+    //                scalePoints(StreamSupport.stream(landmark.getPath().spliterator(), false),
+    // scale));
+    //    }
 
     /** Draws markers at the given points */
-    public static void drawKeypoints(Mat image, List<Point> points) {
+    public static void drawKeypoints(Mat image, Collection<? extends Point> points) {
         Preconditions.equals(DopeConstants.IMAGE_HEIGHT, image.rows(), "Image height is wrong");
         Preconditions.equals(DopeConstants.IMAGE_WIDTH, image.cols(), "Image width is wrong");
         points.forEach(
                 p ->
                         Imgproc.drawMarker(
                                 image,
-                                new org.opencv.core.Point(p.getX(), p.getY()),
+                                new org.opencv.core.Point(
+                                        p.getX() * DopeConstants.SCALE_FACTOR,
+                                        p.getY() * DopeConstants.SCALE_FACTOR),
                                 RgbColors.GREEN));
     }
 
-    public static void drawAffinityFields(Mat image, OutputTensor output) {
+    public static void drawAffinityFields(Mat image, AffinityFields fields) {
         Preconditions.equals(DopeConstants.IMAGE_HEIGHT, image.rows(), "Image height is wrong");
         Preconditions.equals(DopeConstants.IMAGE_WIDTH, image.cols(), "Image width is wrong");
-        for (int i = 0; i < output.affinities().size(0); i += 2) {
+        for (int i = 0; i < fields.size(); i++) {
             // make i enclose final
             var j = i;
             OpencvKit.drawVectorField(
@@ -165,19 +167,11 @@ public class Utils {
                     DopeConstants.SCALE_FACTOR,
                     RgbColors.RED,
                     (x, y) ->
-                            26
-                                    * (output.affinities()
-                                            .get(j)
-                                            .getFloat(
-                                                    y / DopeConstants.SCALE_FACTOR,
-                                                    x / DopeConstants.SCALE_FACTOR)),
-                    (x, y) ->
-                            26
-                                    * (output.affinities()
-                                            .get(j + 1)
-                                            .getFloat(
-                                                    y / DopeConstants.SCALE_FACTOR,
-                                                    x / DopeConstants.SCALE_FACTOR)));
+                            fields.getValue(
+                                            j,
+                                            y / DopeConstants.SCALE_FACTOR,
+                                            x / DopeConstants.SCALE_FACTOR)
+                                    .mul(DopeConstants.SCALE_FACTOR));
         }
     }
 }

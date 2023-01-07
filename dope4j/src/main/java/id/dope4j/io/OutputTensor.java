@@ -23,7 +23,11 @@ import id.dope4j.DopeConstants;
 /**
  * @author lambdaprime intid@protonmail.com
  */
-public record OutputTensor(NDArray tensor, NDArray beliefMaps, NDArray affinities) {
+public record OutputTensor(NDArray tensor, NDArray beliefMaps, AffinityFields affinities) {
+
+    public OutputTensor(NDArray tensor, NDArray beliefMaps, NDArray affinities) {
+        this(tensor, beliefMaps, new AffinityFields(affinities));
+    }
 
     /** Raw tensor as returned by the network */
     public NDArray tensor() {
@@ -42,8 +46,7 @@ public record OutputTensor(NDArray tensor, NDArray beliefMaps, NDArray affinitie
         return beliefMaps;
     }
 
-    /** TODO */
-    public NDArray affinities() {
+    public AffinityFields affinities() {
         return affinities;
     }
 }

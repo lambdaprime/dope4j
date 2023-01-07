@@ -39,6 +39,8 @@ Optional options:
 
 `-showAffinityFields=<true|false>` - for each image show all Affinity Fields detected for all 8 vertices during inference step. Every Affinity Field is a vector field where each vector points towards center point. Default "false".
 
+`-showMatchedVertices=<true|false>` - show for each vertex with which center point it matches.
+
 `-cache=<true|false>` - enable caching of preprocessed input images and output tensors. Default is "false".
 
 `-cacheFolder=<path>` - file system location where cache will be stored. Default is "_cache_dope4j" inside system temporary folder

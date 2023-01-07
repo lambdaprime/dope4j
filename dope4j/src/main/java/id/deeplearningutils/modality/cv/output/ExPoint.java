@@ -18,6 +18,7 @@
 package id.deeplearningutils.modality.cv.output;
 
 import ai.djl.modality.cv.output.Point;
+import java.util.Objects;
 
 /**
  * Extension for {@link Point}
@@ -30,6 +31,26 @@ public class ExPoint extends Point {
 
     public ExPoint(double x, double y) {
         super(x, y);
+    }
+
+    public double distance(Point p) {
+        var n1 = getX() - p.getX();
+        var n2 = getY() - p.getY();
+        return Math.sqrt(n1 * n1 + n2 * n2);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getX(), getY());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
+        var other = (ExPoint) obj;
+        return getX() == other.getX() && getY() == other.getY();
     }
 
     @Override

@@ -38,10 +38,11 @@ import java.util.Optional;
  *
  * <p>Must be thread safe.
  *
+ * @param <R> output type of the decoder
  * @author lambdaprime intid@protonmail.com
  */
 @FunctionalInterface
-public interface DopeDecoder<T> {
+public interface DopeDecoder<R> {
 
     /**
      * This method is called inside of {@link
@@ -51,5 +52,5 @@ public interface DopeDecoder<T> {
      *
      * @throws DopeException
      */
-    Optional<T> decode(InputImage inputImage, NDArray outputTensor) throws DopeException;
+    Optional<R> decode(InputImage inputImage, NDArray outputTensor) throws DopeException;
 }
