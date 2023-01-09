@@ -15,10 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package id.dope4j;
+package id.dope4j.app;
 
 import ai.djl.engine.Engine;
 import ai.djl.ndarray.NDArray;
+import id.dope4j.DeepObjectPoseEstimationService;
+import id.dope4j.DopeConstants;
 import id.dope4j.decoders.ObjectsDecoder;
 import id.dope4j.decoders.ObjectsDecoder.Inspector;
 import id.dope4j.decoders.SaveStateDecoder;

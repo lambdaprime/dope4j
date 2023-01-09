@@ -12,7 +12,7 @@ import java.nio.file.*;
  */
  class Launcher {
 
-    static final String MAIN_CLASS = "id.dope4j.DeepObjectPoseEstimationApp";
+    static final String MAIN_CLASS = "id.dope4j.app.DeepObjectPoseEstimationApp";
     
     /**
      * These are mostly dependencies which would increase release
