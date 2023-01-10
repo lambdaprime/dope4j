@@ -27,8 +27,8 @@ import static id.dope4j.impl.Utils.debugNDArray;
 
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.types.Shape;
-import id.deeplearningutils.modality.cv.output.BoundingBox3d;
-import id.deeplearningutils.modality.cv.output.ExPoint;
+import id.deeplearningutils.modality.cv.output.Cuboid2D;
+import id.deeplearningutils.modality.cv.output.Point2D;
 import id.dope4j.DopeConstants;
 import id.dope4j.exceptions.NoKeypointsFoundException;
 import id.dope4j.io.AffinityFields;
@@ -95,7 +95,7 @@ public class DopeDecoderUtils {
     public OutputKeypoints findKeypoints(OutputTensor output, double threshold)
             throws NoKeypointsFoundException {
         var beliefMaps = output.beliefMaps();
-        List<List<ExPoint>> allPeaks = new ArrayList<>();
+        List<List<Point2D>> allPeaks = new ArrayList<>();
         for (int i = 0; i < BELIEF_MAPS_COUNT; i++) {
             LOGGER.debug("Belief map shape: {}", beliefMaps.get(i).getShape());
             Mat belief = new MatOfFloat(beliefMaps.get(i).toFloatArray());
@@ -115,7 +115,7 @@ public class DopeDecoderUtils {
             if (peaks.isEmpty())
                 throw new NoKeypointsFoundException(
                         String.format("Belief map number %s, peak threshold %s", i, threshold));
-            allPeaks.add(peaks.stream().map(p -> new ExPoint(p.x, p.y)).toList());
+            allPeaks.add(peaks.stream().map(p -> new Point2D(p.x, p.y)).toList());
         }
         LOGGER.debug("Detected keypoints: {}", allPeaks);
 
@@ -127,18 +127,18 @@ public class DopeDecoderUtils {
     }
 
     /** Returns map of pairs: center point - [list of matched vertices] */
-    private Map<ExPoint, List<ExPoint>> matchCenterPointsWithVertices(
-            List<ExPoint> centerPoints,
-            List<List<ExPoint>> vertices,
+    private Map<Point2D, List<Point2D>> matchCenterPointsWithVertices(
+            List<Point2D> centerPoints,
+            List<List<Point2D>> vertices,
             AffinityFields affinityFields) {
-        Map<ExPoint, List<ExPoint>> objectsMap =
+        Map<Point2D, List<Point2D>> objectsMap =
                 centerPoints.stream().collect(Collectors.toMap(i -> i, i -> new ArrayList<>()));
         for (int beliefMapId = 0;
                 beliefMapId < DopeConstants.BELIEF_MAPS_COUNT - 1;
                 beliefMapId++) {
             for (var vertex : vertices.get(beliefMapId)) {
                 double minDistance = Integer.MAX_VALUE;
-                ExPoint candidateCenterPoint = null;
+                Point2D candidateCenterPoint = null;
                 for (var center : centerPoints) {
                     var affinityVec = affinityFields.getValue(beliefMapId, vertex).normalize();
                     var vec =
@@ -165,7 +165,9 @@ public class DopeDecoderUtils {
                         keypoints.centerPoints(), keypoints.vertices(), affinityFields);
         return new OutputObjects(
                 objectsMap.entrySet().stream()
-                        .map(e -> new BoundingBox3d(e.getKey(), e.getValue()))
+                        .map(e -> new Cuboid2D(e.getKey(), e.getValue()))
                         .toList());
     }
+
+    public void findPose(OutputObjects objects) {}
 }

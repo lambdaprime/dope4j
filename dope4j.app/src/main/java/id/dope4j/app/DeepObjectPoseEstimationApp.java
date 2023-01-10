@@ -199,9 +199,9 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                                     bb -> {
                                         var centerPoint =
                                                 new org.opencv.core.Point(
-                                                        bb.center().getX()
+                                                        bb.getCenter().getX()
                                                                 * DopeConstants.SCALE_FACTOR,
-                                                        bb.center().getY()
+                                                        bb.getCenter().getY()
                                                                 * DopeConstants.SCALE_FACTOR);
                                         bb.vertices()
                                                 .forEach(

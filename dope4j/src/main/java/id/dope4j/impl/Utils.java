@@ -25,7 +25,7 @@ import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
-import id.deeplearningutils.modality.cv.output.ExPoint;
+import id.deeplearningutils.modality.cv.output.Point2D;
 import id.dope4j.DopeConstants;
 import id.dope4j.io.AffinityFields;
 import id.matcv.OpencvKit;
@@ -127,8 +127,8 @@ public class Utils {
         return model;
     }
 
-    public static List<ExPoint> scalePoints(Stream<? extends Point> points, int scale) {
-        return points.map(p -> new ExPoint(p.getX() * scale, p.getY() * scale)).toList();
+    public static List<Point2D> scalePoints(Stream<? extends Point> points, int scale) {
+        return points.map(p -> new Point2D(p.getX() * scale, p.getY() * scale)).toList();
     }
 
     //    public static Landmark scaleLandmark(Landmark landmark, int scale) {

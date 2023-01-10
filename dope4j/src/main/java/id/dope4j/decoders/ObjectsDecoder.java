@@ -92,6 +92,7 @@ public class ObjectsDecoder implements DopeDecoder<OutputObjects> {
             inspectorOpt.ifPresent(inspector -> inspector.inspectKeypoints(keypoints));
             var objects = decoderUtils.findObjects(keypoints, output.affinities());
             inspectorOpt.ifPresent(inspector -> inspector.inspectOjects(objects));
+            decoderUtils.findPose(objects);
             return Optional.of(objects);
         } finally {
             inspectorOpt.ifPresent(Inspector::close);

@@ -17,21 +17,23 @@
  */
 package id.dope4j.io;
 
-import id.deeplearningutils.modality.cv.output.ExPoint;
+import id.deeplearningutils.modality.cv.output.Point2D;
 import java.util.List;
 
 /**
  * @author lambdaprime intid@protonmail.com
  */
-public record OutputKeypoints(List<List<ExPoint>> vertices, List<ExPoint> centerPoints) {
+public record OutputKeypoints(List<List<Point2D>> vertices, List<Point2D> centerPoints) {
 
-    /** There are 8 lists in total which represent 8 corners of the 3d bounding boxes */
-    public List<List<ExPoint>> vertices() {
+    /**
+     * There are 8 lists in total which represent 8 corners of 3D cuboids which surround the object
+     */
+    public List<List<Point2D>> vertices() {
         return vertices;
     }
 
     /** Center points of all objects */
-    public List<ExPoint> centerPoints() {
+    public List<Point2D> centerPoints() {
         return centerPoints;
     }
 }

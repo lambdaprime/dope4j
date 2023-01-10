@@ -18,6 +18,7 @@
 package id.deeplearningutils.modality.cv.output;
 
 import ai.djl.modality.cv.output.Point;
+import id.xfunction.XJsonStringBuilder;
 import java.util.Objects;
 
 /**
@@ -25,11 +26,11 @@ import java.util.Objects;
  *
  * @author lambdaprime intid@protonmail.com
  */
-public class ExPoint extends Point {
+public class Point2D extends Point {
 
     private static final long serialVersionUID = 1L;
 
-    public ExPoint(double x, double y) {
+    public Point2D(double x, double y) {
         super(x, y);
     }
 
@@ -49,12 +50,15 @@ public class ExPoint extends Point {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        var other = (ExPoint) obj;
+        var other = (Point2D) obj;
         return getX() == other.getX() && getY() == other.getY();
     }
 
     @Override
     public String toString() {
-        return "[" + getX() + ", " + getY() + "]";
+        var builder = new XJsonStringBuilder();
+        builder.append("x", getX());
+        builder.append("y", getY());
+        return builder.toString();
     }
 }

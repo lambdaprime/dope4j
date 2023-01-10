@@ -17,15 +17,15 @@
  */
 package id.dope4j.io;
 
-import id.deeplearningutils.modality.cv.output.BoundingBox3d;
+import id.deeplearningutils.modality.cv.output.Cuboid2D;
 import java.util.List;
 
 /**
  * @author lambdaprime intid@protonmail.com
  */
-public record OutputObjects(List<? extends BoundingBox3d> objects) {
+public record OutputObjects(List<? extends Cuboid2D> objects) {
 
-    public List<? extends BoundingBox3d> objects() {
+    public List<? extends Cuboid2D> objects() {
         return objects;
     }
 }
