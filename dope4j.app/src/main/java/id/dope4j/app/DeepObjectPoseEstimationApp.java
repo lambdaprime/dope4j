@@ -19,6 +19,11 @@ package id.dope4j.app;
 
 import ai.djl.engine.Engine;
 import ai.djl.ndarray.NDArray;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.impl.RecordNamingStrategyPatchModule;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import id.dope4j.DeepObjectPoseEstimationService;
 import id.dope4j.DopeConstants;
 import id.dope4j.decoders.ObjectsDecoder;
@@ -31,6 +36,7 @@ import id.dope4j.io.OutputKeypoints;
 import id.dope4j.io.OutputObjects;
 import id.dope4j.io.OutputTensor;
 import id.matcv.RgbColors;
+import id.matcv.camera.CameraInfo;
 import id.xfunction.ResourceUtils;
 import id.xfunction.cli.ArgumentParsingException;
 import id.xfunction.cli.CommandOptions;
@@ -94,18 +100,21 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         var cacheFolder =
                 commandOptions
                         .getOption("cacheFolder")
-                        .map(s -> Paths.get(s))
+                        .map(Paths::get)
                         .or(() -> XFiles.TEMP_FOLDER.map(p -> p.resolve(CACHE_FOLDER_NAME)))
                         .orElse(Paths.get(CACHE_FOLDER_NAME));
         LOGGER.info("Cache folder: {}", cacheFolder);
         mapper = new CacheFileMapper(cacheFolder);
         saveState = new SaveStateDecoder(mapper);
+        var cameraInfoPath = commandOptions.getRequiredOption("cameraInfo");
+        LOGGER.info("Reading camera info from: {}", cameraInfoPath);
         objectsDecoder =
                 new ObjectsDecoder(
                         commandOptions
                                 .getOption("threshold")
                                 .map(Double::parseDouble)
                                 .orElse(DopeConstants.DEFAULT_PEAK_THRESHOLD),
+                        readCameraInfo(Paths.get(cameraInfoPath)),
                         this);
         if (!imagePath.toFile().exists())
             throw new RuntimeException("Path does not exist: " + imagePath);
@@ -125,11 +134,26 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         }
     }
 
+    private CameraInfo readCameraInfo(Path path) {
+        try {
+            return new YAMLMapper()
+                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+                    .registerModule(new RecordNamingStrategyPatchModule())
+                    .registerModule(new ParameterNamesModule())
+                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .reader()
+                    .readValue(path.toFile(), CameraInfo.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private boolean processFromCache(Path imageFile) throws IOException {
         var tensorFile = mapper.getTensorFile(imageFile);
         if (!tensorFile.toFile().exists()) return false;
         LOGGER.debug(
-                "Image data {} found in cache, do not run inference and use it instead", imageFile);
+                "Image data found in cache, do not run inference and use it instead: image {}",
+                imageFile);
         var tensor =
                 NDArray.decode(
                         Engine.getInstance().newBaseManager(), Files.readAllBytes(tensorFile));

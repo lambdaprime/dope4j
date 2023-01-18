@@ -25,6 +25,7 @@ import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputKeypoints;
 import id.dope4j.io.OutputObjects;
 import id.dope4j.io.OutputTensor;
+import id.matcv.camera.CameraInfo;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,13 +70,16 @@ public class ObjectsDecoder implements DopeDecoder<OutputObjects> {
 
     private double threshold;
     private Optional<Inspector.Builder> inspectorBuilder = Optional.empty();
+    public CameraInfo cameraInfo;
 
-    public ObjectsDecoder(double threshold) {
-        this(threshold, null);
+    public ObjectsDecoder(double threshold, CameraInfo cameraInfo) {
+        this(threshold, cameraInfo, null);
     }
 
-    public ObjectsDecoder(double threshold, Inspector.Builder inspectorBuilder) {
+    public ObjectsDecoder(
+            double threshold, CameraInfo cameraInfo, Inspector.Builder inspectorBuilder) {
         this.threshold = threshold;
+        this.cameraInfo = cameraInfo;
         this.inspectorBuilder = Optional.ofNullable(inspectorBuilder);
     }
 
