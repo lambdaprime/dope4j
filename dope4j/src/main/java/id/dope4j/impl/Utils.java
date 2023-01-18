@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 public class Utils {
     private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
+    private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
 
     public static void debugNDArray(String description, NDArray array, String slice) {
         if (!LOGGER.isDebugEnabled()) return;
@@ -149,9 +150,7 @@ public class Utils {
                 p ->
                         Imgproc.drawMarker(
                                 image,
-                                new org.opencv.core.Point(
-                                        p.getX() * DopeConstants.SCALE_FACTOR,
-                                        p.getY() * DopeConstants.SCALE_FACTOR),
+                                converters.copyToPoint(p, DopeConstants.SCALE_FACTOR),
                                 RgbColors.GREEN));
     }
 
@@ -163,8 +162,8 @@ public class Utils {
             var j = i;
             OpencvKit.drawVectorField(
                     image,
-                    DopeConstants.SCALE_FACTOR,
-                    DopeConstants.SCALE_FACTOR,
+                    (int) DopeConstants.SCALE_FACTOR,
+                    (int) DopeConstants.SCALE_FACTOR,
                     RgbColors.RED,
                     (x, y) ->
                             fields.getValue(

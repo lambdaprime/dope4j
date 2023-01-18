@@ -48,31 +48,32 @@ import java.util.Objects;
  * @author lambdaprime intid@protonmail.com
  */
 public class Cuboid2D {
-    private List<Point> vertices;
-    private Point center;
-    private Point v1;
-    private Point v2;
-    private Point v3;
-    private Point v4;
-    private Point v5;
-    private Point v6;
-    private Point v7;
-    private Point v8;
+    private List<Point2D> vertices;
+    private Point2D center;
+    private Point2D v1;
+    private Point2D v2;
+    private Point2D v3;
+    private Point2D v4;
+    private Point2D v5;
+    private Point2D v6;
+    private Point2D v7;
+    private Point2D v8;
+    private List<Edge2D> edges;
 
     public Cuboid2D(
-            Point center,
-            Point v1,
-            Point v2,
-            Point v3,
-            Point v4,
-            Point v5,
-            Point v6,
-            Point v7,
-            Point v8) {
+            Point2D center,
+            Point2D v1,
+            Point2D v2,
+            Point2D v3,
+            Point2D v4,
+            Point2D v5,
+            Point2D v6,
+            Point2D v7,
+            Point2D v8) {
         this(center, List.of(v1, v2, v3, v4, v5, v6, v7, v8));
     }
 
-    public Cuboid2D(Point center, List<? extends Point> vertices) {
+    public Cuboid2D(Point2D center, List<Point2D> vertices) {
         Preconditions.equals(8, vertices.size(), "Cuboid requires 8 vertices");
         this.center = center;
         this.v1 = vertices.get(0);
@@ -84,13 +85,27 @@ public class Cuboid2D {
         this.v7 = vertices.get(6);
         this.v8 = vertices.get(7);
         this.vertices = List.copyOf(vertices);
+        this.edges =
+                List.of(
+                        new Edge2D(v1, v2),
+                        new Edge2D(v2, v3),
+                        new Edge2D(v3, v4),
+                        new Edge2D(v4, v1),
+                        new Edge2D(v5, v6),
+                        new Edge2D(v6, v7),
+                        new Edge2D(v7, v8),
+                        new Edge2D(v8, v5),
+                        new Edge2D(v1, v5),
+                        new Edge2D(v2, v6),
+                        new Edge2D(v3, v7),
+                        new Edge2D(v4, v8));
     }
 
-    public List<Point> vertices() {
-        return vertices;
+    public List<Edge2D> getEdges() {
+        return edges;
     }
 
-    public List<Point> getVertices() {
+    public List<Point2D> getVertices() {
         return vertices;
     }
 

@@ -31,5 +31,5 @@ public interface DopeConstants {
     int[] BELIEF_SHAPE = {TENSOR_ROWS, TENSOR_COLS};
     double GAUSSIAN_SIGMA = 3.0;
     double DEFAULT_PEAK_THRESHOLD = 0.01;
-    int SCALE_FACTOR = 8;
+    float SCALE_FACTOR = 8;
 }

@@ -19,6 +19,7 @@ package id.deeplearningutils.modality.cv.output;
 
 import ai.djl.modality.cv.output.Point;
 import id.xfunction.XJsonStringBuilder;
+import java.util.Comparator;
 import java.util.Objects;
 
 /**
@@ -29,6 +30,11 @@ import java.util.Objects;
 public class Point2D extends Point {
 
     private static final long serialVersionUID = 1L;
+    public static final Comparator<Point> COMPARATOR =
+            (p1, p2) -> {
+                if (p1.getX() < p2.getX()) return -1;
+                return p1.getX() == p2.getX() ? Double.compare(p1.getY(), p2.getY()) : 1;
+            };
 
     public Point2D(double x, double y) {
         super(x, y);
@@ -38,6 +44,10 @@ public class Point2D extends Point {
         var n1 = getX() - p.getX();
         var n2 = getY() - p.getY();
         return Math.sqrt(n1 * n1 + n2 * n2);
+    }
+
+    public Point2D scaled(double scale) {
+        return new Point2D(getX() * scale, getY() * scale);
     }
 
     @Override

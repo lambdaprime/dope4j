@@ -22,44 +22,32 @@ import id.xfunction.XJsonStringBuilder;
 import java.util.Objects;
 
 /**
- * {@link Point} in 3D.
+ * Extension for {@link Point}
  *
  * @author lambdaprime intid@protonmail.com
  */
-public class Point3D {
+public class Edge2D {
 
-    private double x;
-    private double y;
-    private double z;
+    private Point2D a;
+    private Point2D b;
 
-    /** Origin with all values equal 0 */
-    public Point3D() {}
-
-    public Point3D(double x, double y, double z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+    public Edge2D(Point2D a, Point2D b) {
+        boolean swap = Point2D.COMPARATOR.compare(a, b) > 0;
+        this.a = swap ? b : a;
+        this.b = swap ? a : b;
     }
 
-    public double getX() {
-        return x;
+    public Point2D getPointA() {
+        return a;
     }
 
-    public double getY() {
-        return y;
-    }
-
-    public double getZ() {
-        return z;
-    }
-
-    public Point3D scaled(double scale) {
-        return new Point3D(x * scale, y * scale, z * scale);
+    public Point2D getPointB() {
+        return b;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(x, y, z);
+        return Objects.hash(a, b);
     }
 
     @Override
@@ -67,16 +55,15 @@ public class Point3D {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        var other = (Point3D) obj;
-        return x == other.x && y == other.y && z == other.z;
+        var other = (Edge2D) obj;
+        return Objects.equals(a, other.a) && Objects.equals(b, other.b);
     }
 
     @Override
     public String toString() {
         var builder = new XJsonStringBuilder();
-        builder.append("x", x);
-        builder.append("y", y);
-        builder.append("z", z);
+        builder.append("a", a);
+        builder.append("b", b);
         return builder.toString();
     }
 }

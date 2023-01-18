@@ -227,7 +227,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                                                                 * DopeConstants.SCALE_FACTOR,
                                                         bb.getCenter().getY()
                                                                 * DopeConstants.SCALE_FACTOR);
-                                        bb.vertices()
+                                        bb.getVertices()
                                                 .forEach(
                                                         vertex -> {
                                                             var v =
