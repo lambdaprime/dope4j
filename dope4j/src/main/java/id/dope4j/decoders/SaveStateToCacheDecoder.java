@@ -31,18 +31,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Saves preprocessed input image with the output tensor into file system.
+ * Saves preprocessed input image with the output tensor into file system cache.
  *
  * <p>Thread safe.
  *
  * @author lambdaprime intid@protonmail.com
  */
-public class SaveStateDecoder implements DopeDecoder<Void> {
+public class SaveStateToCacheDecoder implements DopeDecoder<Void> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SaveStateDecoder.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SaveStateToCacheDecoder.class);
     private CacheFileMapper mapper;
 
-    public SaveStateDecoder(CacheFileMapper mapper) {
+    public SaveStateToCacheDecoder(CacheFileMapper mapper) {
         this.mapper = mapper;
     }
 
@@ -74,5 +74,9 @@ public class SaveStateDecoder implements DopeDecoder<Void> {
     private void saveToFile(Image image, Path path) throws IOException {
         LOGGER.debug("Saving image to file {}", path);
         image.save(new FileOutputStream(path.toFile()), "png");
+    }
+
+    public CacheFileMapper getCacheMapper() {
+        return mapper;
     }
 }

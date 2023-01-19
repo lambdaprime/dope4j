@@ -28,14 +28,8 @@ import id.dope4j.DeepObjectPoseEstimationService;
 import id.dope4j.DopeConstants;
 import id.dope4j.decoders.ObjectsDecoder;
 import id.dope4j.decoders.ObjectsDecoder.Inspector;
-import id.dope4j.decoders.SaveStateDecoder;
 import id.dope4j.impl.CacheFileMapper;
-import id.dope4j.impl.Utils;
 import id.dope4j.io.InputImage;
-import id.dope4j.io.OutputKeypoints;
-import id.dope4j.io.OutputObjects;
-import id.dope4j.io.OutputTensor;
-import id.matcv.RgbColors;
 import id.matcv.camera.CameraInfo;
 import id.xfunction.ResourceUtils;
 import id.xfunction.cli.ArgumentParsingException;
@@ -53,8 +47,6 @@ import java.util.List;
 import java.util.Optional;
 import nu.pattern.OpenCV;
 import org.opencv.core.Mat;
-import org.opencv.highgui.HighGui;
-import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,11 +59,9 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeepObjectPoseEstimationApp.class);
     private static final String CACHE_FOLDER_NAME = "_cache_dope4j";
-    private CacheFileMapper mapper;
     private CommandOptions commandOptions;
-    private SaveStateDecoder saveState;
     private ObjectsDecoder objectsDecoder;
-    private boolean isCacheEnabled;
+    private Optional<CacheFileMapper> cacheFileMapper = Optional.empty();
 
     static {
         OpenCV.loadLocally();
@@ -96,16 +86,16 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         LOGGER.info("Model URL: {}", modelUrl);
         var imagePath = Paths.get(commandOptions.getRequiredOption("imagePath"));
         LOGGER.info("Image path: {}", imagePath);
-        isCacheEnabled = commandOptions.isOptionTrue("cache");
-        var cacheFolder =
-                commandOptions
-                        .getOption("cacheFolder")
-                        .map(Paths::get)
-                        .or(() -> XFiles.TEMP_FOLDER.map(p -> p.resolve(CACHE_FOLDER_NAME)))
-                        .orElse(Paths.get(CACHE_FOLDER_NAME));
-        LOGGER.info("Cache folder: {}", cacheFolder);
-        mapper = new CacheFileMapper(cacheFolder);
-        saveState = new SaveStateDecoder(mapper);
+        if (commandOptions.isOptionTrue("cache")) {
+            cacheFileMapper =
+                    commandOptions
+                            .getOption("cacheFolder")
+                            .map(Paths::get)
+                            .or(() -> XFiles.TEMP_FOLDER.map(p -> p.resolve(CACHE_FOLDER_NAME)))
+                            .or(() -> Optional.of(Paths.get(CACHE_FOLDER_NAME)))
+                            .map(CacheFileMapper::new);
+            LOGGER.info("Cache folder: {}", cacheFileMapper.get().getCacheHome());
+        }
         var cameraInfoPath = commandOptions.getRequiredOption("cameraInfo");
         LOGGER.info("Reading camera info from: {}", cameraInfoPath);
         objectsDecoder =
@@ -125,7 +115,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         try (var service = new DeepObjectPoseEstimationService<Void>(modelUrl, this::process)) {
             for (var imageFile : imageFilesList) {
                 try {
-                    if (isCacheEnabled && processFromCache(imageFile)) continue;
+                    if (processFromCache(imageFile)) continue;
                     service.analyze(imageFile);
                 } catch (Exception e) {
                     LOGGER.error("Failed to decode image " + imageFile + ": ", e);
@@ -149,7 +139,8 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
     }
 
     private boolean processFromCache(Path imageFile) throws IOException {
-        var tensorFile = mapper.getTensorFile(imageFile);
+        if (cacheFileMapper.isEmpty()) return false;
+        var tensorFile = cacheFileMapper.get().getTensorFile(imageFile);
         if (!tensorFile.toFile().exists()) return false;
         LOGGER.debug(
                 "Image data found in cache, do not run inference and use it instead: image {}",
@@ -192,82 +183,13 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
     @Override
     public Inspector build(InputImage inputImage) {
         Mat mat = (Mat) inputImage.image().getWrappedImage();
-        return new Inspector() {
-            private boolean showImage;
-
-            @Override
-            public void inspectTensor(OutputTensor outputTensor) {
-                inputImage
-                        .path()
-                        .ifPresent(
-                                imageFile -> {
-                                    if (!isCacheEnabled) return;
-                                    var tensorFile = mapper.getTensorFile(imageFile);
-                                    if (tensorFile.toFile().exists()) return;
-                                    LOGGER.debug(
-                                            "Adding image data for {} into the cache", imageFile);
-                                    saveState.decode(inputImage, outputTensor.tensor());
-                                });
-
-                if (commandOptions.isOptionTrue("showAffinityFields")) {
-                    Utils.drawAffinityFields(mat, outputTensor.affinities());
-                    showImage = true;
-                }
-            }
-
-            @Override
-            public void inspectOjects(OutputObjects objects) {
-                if (commandOptions.isOptionTrue("showMatchedVertices")) {
-                    objects.objects()
-                            .forEach(
-                                    bb -> {
-                                        var centerPoint =
-                                                new org.opencv.core.Point(
-                                                        bb.getCenter().getX()
-                                                                * DopeConstants.SCALE_FACTOR,
-                                                        bb.getCenter().getY()
-                                                                * DopeConstants.SCALE_FACTOR);
-                                        bb.getVertices()
-                                                .forEach(
-                                                        vertex -> {
-                                                            var v =
-                                                                    new org.opencv.core.Point(
-                                                                            vertex.getX()
-                                                                                    * DopeConstants
-                                                                                            .SCALE_FACTOR,
-                                                                            vertex.getY()
-                                                                                    * DopeConstants
-                                                                                            .SCALE_FACTOR);
-                                                            Imgproc.line(
-                                                                    mat,
-                                                                    centerPoint,
-                                                                    v,
-                                                                    RgbColors.GREEN);
-                                                        });
-                                    });
-                    showImage = true;
-                }
-            }
-
-            @Override
-            public void inspectKeypoints(OutputKeypoints keypoints) {
-                if (commandOptions.isOptionTrue("showVerticesBeliefs")) {
-                    keypoints.vertices().forEach(l -> Utils.drawKeypoints(mat, l));
-                    showImage = true;
-                }
-                if (commandOptions.isOptionTrue("showCenterPointBeliefs")) {
-                    Utils.drawKeypoints(mat, keypoints.centerPoints());
-                    showImage = true;
-                }
-            }
-
-            @Override
-            public void close() {
-                if (showImage) {
-                    HighGui.imshow(inputImage.toString(), mat);
-                    HighGui.waitKey();
-                }
-            }
-        };
+        return new Dope4jInspector(
+                mat,
+                inputImage,
+                cacheFileMapper,
+                commandOptions.isOptionTrue("showVerticesBeliefs"),
+                commandOptions.isOptionTrue("showCenterPointBeliefs"),
+                commandOptions.isOptionTrue("showAffinityFields"),
+                commandOptions.isOptionTrue("showMatchedVertices"));
     }
 }

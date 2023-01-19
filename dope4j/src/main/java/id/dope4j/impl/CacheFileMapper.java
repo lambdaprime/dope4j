@@ -41,4 +41,8 @@ public class CacheFileMapper {
     public Path getProcessedImageFile(Path imageFile) {
         return imageFile.resolveSibling(cacheHome.resolve(imageFile.getFileName() + ".png"));
     }
+
+    public Path getCacheHome() {
+        return cacheHome;
+    }
 }
