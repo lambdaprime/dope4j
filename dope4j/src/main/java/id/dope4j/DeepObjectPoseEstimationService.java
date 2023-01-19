@@ -29,6 +29,7 @@ import id.dope4j.io.InputImage;
 import id.xfunction.util.LazyService;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -53,21 +54,16 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
         translator = new DopeTranslator<>(decoder);
     }
 
-    /** Perform inference */
-    public Optional<T> analyze(Path imageFile) throws DopeException {
-        return analyze(List.of(imageFile)).stream().findFirst();
-    }
-
     /** Perform batch inference */
-    public List<T> analyze(List<Path> images) throws DopeException {
+    public List<T> analyze(Path... images) throws DopeException {
         startLazy();
-        if (images.isEmpty()) {
+        if (images.length == 0) {
             LOGGER.warn("Received empty list of images, nothing to analyze");
             return List.of();
         }
         try {
             var batch =
-                    images.stream()
+                    Arrays.stream(images)
                             .map(
                                     imagePath -> {
                                         try {
@@ -83,11 +79,11 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
                                     })
                             .filter(o -> o != null)
                             .toList();
-            if (images.isEmpty()) {
+            if (batch.isEmpty()) {
                 LOGGER.warn("There is no images to analyze (possibly due to errors above)");
                 return List.of();
             }
-            LOGGER.info("Starting inference for batch of size {}", images.size());
+            LOGGER.info("Starting inference for batch of size {}", batch.size());
             var output =
                     model.newPredictor(translator).batchPredict(batch).stream()
                             .filter(Optional::isPresent)

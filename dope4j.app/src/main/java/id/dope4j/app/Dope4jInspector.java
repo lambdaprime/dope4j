@@ -21,6 +21,7 @@ import id.dope4j.DopeConstants;
 import id.dope4j.decoders.ObjectsDecoder.Inspector;
 import id.dope4j.decoders.SaveStateToCacheDecoder;
 import id.dope4j.impl.CacheFileMapper;
+import id.dope4j.impl.DjlOpenCvConverters;
 import id.dope4j.impl.Utils;
 import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputKeypoints;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 class Dope4jInspector implements Inspector {
     private static final Logger LOGGER = LoggerFactory.getLogger(Dope4jInspector.class);
+    private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
     private final Mat mat;
     private final InputImage inputImage;
     private boolean showImage;
@@ -89,28 +91,13 @@ class Dope4jInspector implements Inspector {
     @Override
     public void inspectOjects(OutputObjects objects) {
         if (showMatchedVertices) {
-            objects.objects()
-                    .forEach(
-                            bb -> {
-                                var centerPoint =
-                                        new org.opencv.core.Point(
-                                                bb.getCenter().getX() * DopeConstants.SCALE_FACTOR,
-                                                bb.getCenter().getY() * DopeConstants.SCALE_FACTOR);
-                                bb.getVertices()
-                                        .forEach(
-                                                vertex -> {
-                                                    var v =
-                                                            new org.opencv.core.Point(
-                                                                    vertex.getX()
-                                                                            * DopeConstants
-                                                                                    .SCALE_FACTOR,
-                                                                    vertex.getY()
-                                                                            * DopeConstants
-                                                                                    .SCALE_FACTOR);
-                                                    Imgproc.line(
-                                                            mat, centerPoint, v, RgbColors.GREEN);
-                                                });
-                            });
+            for (var bb : objects.objects()) {
+                var centerPoint =
+                        converters.copyToPoint(bb.getCenter(), DopeConstants.SCALE_FACTOR);
+                bb.getVertices().stream()
+                        .map(v -> converters.copyToPoint(v, DopeConstants.SCALE_FACTOR))
+                        .forEach(v -> Imgproc.line(mat, centerPoint, v, RgbColors.GREEN));
+            }
             showImage = true;
         }
     }
