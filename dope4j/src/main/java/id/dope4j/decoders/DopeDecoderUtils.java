@@ -36,6 +36,8 @@ import id.dope4j.io.OutputKeypoints;
 import id.dope4j.io.OutputObjects;
 import id.dope4j.io.OutputTensor;
 import id.matcv.MatUtils;
+import id.matcv.OpenCvKit;
+import id.matcv.accessors.Float2DAccessor;
 import id.mathcalc.Vector2f;
 import id.xfunction.Preconditions;
 import java.util.ArrayList;
@@ -63,6 +65,7 @@ public class DopeDecoderUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DopeDecoderUtils.class);
     private MatUtils utils = new MatUtils();
+    private OpenCvKit openCvKit = new OpenCvKit();
 
     public OutputTensor readDopeOutput(NDArray tensor) {
         Shape tensorShape = tensor.getShape();
@@ -98,13 +101,14 @@ public class DopeDecoderUtils {
         List<List<Point2D>> allPeaks = new ArrayList<>();
         for (int i = 0; i < BELIEF_MAPS_COUNT; i++) {
             LOGGER.debug("Belief map shape: {}", beliefMaps.get(i).getShape());
-            Mat belief = new MatOfFloat(beliefMaps.get(i).toFloatArray());
-            belief = belief.reshape(1, BELIEF_SHAPE);
-            if (i == 0) utils.debugMat("Belief map", belief, new Rect(0, 0, 3, 3));
+            var belief = beliefMaps.get(i).toFloatArray();
+            Mat beliefMat = new MatOfFloat(belief);
+            beliefMat = beliefMat.reshape(1, BELIEF_SHAPE);
+            if (i == 0) utils.debugMat("Belief map", beliefMat, new Rect(0, 0, 3, 3));
 
             var blurred = new Mat();
             Imgproc.GaussianBlur(
-                    belief,
+                    beliefMat,
                     blurred,
                     new Size(0, 0),
                     GAUSSIAN_SIGMA,
@@ -115,7 +119,20 @@ public class DopeDecoderUtils {
             if (peaks.isEmpty())
                 throw new NoKeypointsFoundException(
                         String.format("Belief map number %s, peak threshold %s", i, threshold));
-            allPeaks.add(peaks.stream().map(p -> new Point2D(p.x, p.y)).toList());
+            // recalculating peak coordinates with respect to weighted average
+            peaks =
+                    openCvKit.applyWeightedAverage(
+                            Float2DAccessor.fromArray(belief, BELIEF_SHAPE),
+                            DopeConstants.PEAKS_WEIGHTED_AVERAGE_WINDOW,
+                            peaks);
+            allPeaks.add(
+                    peaks.stream()
+                            .map(
+                                    p ->
+                                            new Point2D(
+                                                    p.x + DopeConstants.OFFSET_DUE_TO_UPSAMPLING,
+                                                    p.y + DopeConstants.OFFSET_DUE_TO_UPSAMPLING))
+                            .toList());
         }
         LOGGER.debug("Detected keypoints: {}", allPeaks);
 

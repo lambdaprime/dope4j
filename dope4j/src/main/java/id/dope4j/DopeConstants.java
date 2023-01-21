@@ -32,4 +32,6 @@ public interface DopeConstants {
     double GAUSSIAN_SIGMA = 3.0;
     double DEFAULT_PEAK_THRESHOLD = 0.01;
     float SCALE_FACTOR = 8;
+    int PEAKS_WEIGHTED_AVERAGE_WINDOW = 5;
+    float OFFSET_DUE_TO_UPSAMPLING = 0.4395F;
 }

@@ -28,8 +28,9 @@ import ai.djl.repository.zoo.ModelNotFoundException;
 import id.deeplearningutils.modality.cv.output.Point2D;
 import id.dope4j.DopeConstants;
 import id.dope4j.io.AffinityFields;
-import id.matcv.OpencvKit;
+import id.matcv.OpenCvKit;
 import id.matcv.RgbColors;
+import id.matcv.accessors.Vector2f2DAccessor;
 import id.xfunction.Preconditions;
 import java.io.IOException;
 import java.util.Arrays;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
 public class Utils {
     private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
     private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
+    private static final OpenCvKit openCvKit = new OpenCvKit();
 
     public static void debugNDArray(String description, NDArray array, String slice) {
         if (!LOGGER.isDebugEnabled()) return;
@@ -160,17 +162,20 @@ public class Utils {
         for (int i = 0; i < fields.size(); i++) {
             // make i enclose final
             var j = i;
-            OpencvKit.drawVectorField(
+            openCvKit.drawVectorField(
                     image,
                     (int) DopeConstants.SCALE_FACTOR,
                     (int) DopeConstants.SCALE_FACTOR,
                     RgbColors.RED,
-                    (x, y) ->
-                            fields.getValue(
-                                            j,
-                                            y / DopeConstants.SCALE_FACTOR,
-                                            x / DopeConstants.SCALE_FACTOR)
-                                    .mul(DopeConstants.SCALE_FACTOR));
+                    Vector2f2DAccessor.fromGetter(
+                            image.rows(),
+                            image.cols(),
+                            (x, y) ->
+                                    fields.getValue(
+                                                    j,
+                                                    y / DopeConstants.SCALE_FACTOR,
+                                                    x / DopeConstants.SCALE_FACTOR)
+                                            .mul(DopeConstants.SCALE_FACTOR)));
         }
     }
 }
