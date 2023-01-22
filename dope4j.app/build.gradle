@@ -58,6 +58,11 @@ task copyLibs(type: Copy) {
   into "${packageDir}/libs"
 }
 
+task copyConfig(type: Copy) {
+  from "$projectDir/config"
+  into "${packageDir}/config"
+}
+
 task copyReadme(type: Copy) {
   from("../README.md")
   into("$buildDir/resources/main")
@@ -67,7 +72,7 @@ task copyReadme(type: Copy) {
 // overwrite template README which comes from resources folder
 jar.dependsOn copyReadme
 
-task createPackage(type: Copy, dependsOn: copyLibs) {
+task createPackage(type: Copy, dependsOn: [copyLibs, copyConfig]) {
   from "${project.rootDir}/README.md"
   from "${project.rootDir}/LICENSE-2.0.txt"
   from file("$projectDir/src/dope4j")

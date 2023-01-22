@@ -27,11 +27,11 @@ dope4j <options>
 
 Required options:
 
-`-modelUrl=<path>` - path to [DOPE](https://github.com/NVlabs/Deep_Object_Pose) model in ONNX format.
+`-modelUrl=<path>` - path to [DOPE](https://github.com/NVlabs/Deep_Object_Pose) model in ONNX format. Where to download models and how to covert them to ONNX can be found in [Quickstart to isaac_ros_pose_estimation](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/blob/c6a666d2fb6b3304a71fb7d3d928316fd2ce9510/README.md#quickstart)
 
 `-imagePath=<path>` - path to input image file or folder. In case of folder `dope4j` will search it for image files
 
-`-cameraInfo=<path>` - path to file with camera information in [camera_calibration_parsers](http://wiki.ros.org/camera_calibration_parsers#YAML) format. The images should be rectified before feeding them to DOPE. It means that if you want to use your camera you need to calibrate it first. This can be done using `camera_calibration_parsers` as described in [DOPE Camera Tutorial](https://github.com/NVlabs/Deep_Object_Pose/blob/3c407e45e35fee88a218b9c411cc55f08e5b7107/doc/camera_tutorial.md) For testing with DOPE original testsets use [original camera_info.yaml]( https://github.com/NVlabs/Deep_Object_Pose/blob/3c407e45e35fee88a218b9c411cc55f08e5b7107/config/camera_info.yaml)
+`-cameraInfo=<path>` - path to file with camera information in [camera_calibration_parsers](http://wiki.ros.org/camera_calibration_parsers#YAML) format. The images should be rectified before feeding them to DOPE. It means that if you want to use your camera you need to calibrate it first. This can be done using `camera_calibration_parsers` as described in [DOPE Camera Tutorial](https://github.com/NVlabs/Deep_Object_Pose/blob/3c407e45e35fee88a218b9c411cc55f08e5b7107/doc/camera_tutorial.md) For testing with DOPE original testsets use [original camera_info.yaml](https://github.com/NVlabs/Deep_Object_Pose/blob/3c407e45e35fee88a218b9c411cc55f08e5b7107/config/camera_info.yaml) (copy of it can be found inside `config` folder).
 
 Optional options:
 
