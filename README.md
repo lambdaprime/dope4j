@@ -43,6 +43,8 @@ Optional options:
 
 `-showMatchedVertices=<true|false>` - for each vertex show with which center point it matches. Default is "false".
 
+`-showCuboids2D=<true|false>` - for each detected object show a cuboid. The cuboid is rendered directly on the vertices which are returned by the DOPE network (no projection is done). Default is "false".
+
 `-cache=<true|false>` - enable caching of preprocessed input images and output tensors. Default is "false".
 
 `-cacheFolder=<path>` - file system location where cache will be stored. Default is "_cache_dope4j" inside system temporary folder.

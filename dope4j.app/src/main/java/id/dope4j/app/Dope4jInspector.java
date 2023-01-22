@@ -25,7 +25,7 @@ import id.dope4j.impl.DjlOpenCvConverters;
 import id.dope4j.impl.Utils;
 import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputKeypoints;
-import id.dope4j.io.OutputObjects;
+import id.dope4j.io.OutputObjects2D;
 import id.dope4j.io.OutputTensor;
 import id.matcv.RgbColors;
 import java.util.Optional;
@@ -45,6 +45,7 @@ class Dope4jInspector implements Inspector {
     private boolean showCenterPointBeliefs;
     private boolean showAffinityFields;
     private boolean showMatchedVertices;
+    private boolean showCuboid2D;
     private Optional<SaveStateToCacheDecoder> saveStateOpt;
 
     Dope4jInspector(
@@ -54,13 +55,15 @@ class Dope4jInspector implements Inspector {
             boolean showVerticesBeliefs,
             boolean showCenterPointBeliefs,
             boolean showAffinityFields,
-            boolean showMatchedVertices) {
+            boolean showMatchedVertices,
+            boolean showCuboid2D) {
         this.mat = mat;
         this.inputImage = inputImage;
         this.showVerticesBeliefs = showVerticesBeliefs;
         this.showCenterPointBeliefs = showCenterPointBeliefs;
         this.showAffinityFields = showAffinityFields;
         this.showMatchedVertices = showMatchedVertices;
+        this.showCuboid2D = showCuboid2D;
         saveStateOpt = cacheFileMapper.map(SaveStateToCacheDecoder::new);
     }
 
@@ -89,15 +92,26 @@ class Dope4jInspector implements Inspector {
     }
 
     @Override
-    public void inspectOjects(OutputObjects objects) {
+    public void inspectOjects2D(OutputObjects2D objects) {
         if (showMatchedVertices) {
-            for (var bb : objects.objects()) {
+            for (var bb : objects.cuboids2d()) {
                 var centerPoint =
                         converters.copyToPoint(bb.getCenter(), DopeConstants.SCALE_FACTOR);
                 bb.getVertices().stream()
                         .map(v -> converters.copyToPoint(v, DopeConstants.SCALE_FACTOR))
                         .forEach(v -> Imgproc.line(mat, centerPoint, v, RgbColors.GREEN));
             }
+            showImage = true;
+        }
+        if (showCuboid2D) {
+            objects.cuboids2d()
+                    .forEach(
+                            cuboid ->
+                                    Utils.drawCuboid2D(
+                                            mat,
+                                            cuboid,
+                                            DopeConstants.SCALE_FACTOR,
+                                            RgbColors.GREEN));
             showImage = true;
         }
     }

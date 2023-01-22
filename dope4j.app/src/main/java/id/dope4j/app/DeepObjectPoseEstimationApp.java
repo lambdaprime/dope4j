@@ -30,6 +30,7 @@ import id.dope4j.decoders.ObjectsDecoder;
 import id.dope4j.decoders.ObjectsDecoder.Inspector;
 import id.dope4j.impl.CacheFileMapper;
 import id.dope4j.io.InputImage;
+import id.dope4j.io.OutputObjects2D;
 import id.matcv.camera.CameraInfo;
 import id.xfunction.ResourceUtils;
 import id.xfunction.cli.ArgumentParsingException;
@@ -75,11 +76,6 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         new ResourceUtils().readResourceAsStream("README-dope4j.md").forEach(System.out::println);
     }
 
-    public Optional<Void> process(InputImage inputImage, NDArray outputTensor) {
-        objectsDecoder.decode(inputImage, outputTensor);
-        return Optional.empty();
-    }
-
     public void run() throws Exception {
         XLogger.load("logging-dope4j.properties");
         var modelUrl = commandOptions.getRequiredOption("modelUrl");
@@ -112,11 +108,15 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         LOGGER.info("Found {} images to run inference on", imageFilesList.size());
         if (imageFilesList.isEmpty())
             throw new RuntimeException("No image files found in " + imagePath);
-        try (var service = new DeepObjectPoseEstimationService<Void>(modelUrl, this::process)) {
+        try (var service =
+                new DeepObjectPoseEstimationService<OutputObjects2D>(modelUrl, objectsDecoder)) {
             for (var imageFile : imageFilesList) {
                 try {
-                    if (processFromCache(imageFile)) continue;
-                    service.analyze(imageFile);
+                    var pose = processFromCache(imageFile);
+                    if (pose.isEmpty()) {
+                        pose = service.analyze(imageFile).stream().findFirst();
+                    }
+                    pose.ifPresent(System.out::println);
                 } catch (Exception e) {
                     LOGGER.error("Failed to decode image " + imageFile + ": ", e);
                 }
@@ -138,18 +138,17 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         }
     }
 
-    private boolean processFromCache(Path imageFile) throws IOException {
-        if (cacheFileMapper.isEmpty()) return false;
+    private Optional<OutputObjects2D> processFromCache(Path imageFile) throws IOException {
+        if (cacheFileMapper.isEmpty()) return Optional.empty();
         var tensorFile = cacheFileMapper.get().getTensorFile(imageFile);
-        if (!tensorFile.toFile().exists()) return false;
+        if (!tensorFile.toFile().exists()) return Optional.empty();
         LOGGER.debug(
                 "Image data found in cache, do not run inference and use it instead: image {}",
                 imageFile);
         var tensor =
                 NDArray.decode(
                         Engine.getInstance().newBaseManager(), Files.readAllBytes(tensorFile));
-        process(new InputImage(imageFile), tensor);
-        return true;
+        return objectsDecoder.decode(new InputImage(imageFile), tensor);
     }
 
     private List<Path> listImageFiles(Path imagePath) throws IOException {
@@ -190,6 +189,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                 commandOptions.isOptionTrue("showVerticesBeliefs"),
                 commandOptions.isOptionTrue("showCenterPointBeliefs"),
                 commandOptions.isOptionTrue("showAffinityFields"),
-                commandOptions.isOptionTrue("showMatchedVertices"));
+                commandOptions.isOptionTrue("showMatchedVertices"),
+                commandOptions.isOptionTrue("showCuboids2D"));
     }
 }

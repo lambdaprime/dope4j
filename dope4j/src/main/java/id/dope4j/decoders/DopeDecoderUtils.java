@@ -33,7 +33,7 @@ import id.dope4j.DopeConstants;
 import id.dope4j.exceptions.NoKeypointsFoundException;
 import id.dope4j.io.AffinityFields;
 import id.dope4j.io.OutputKeypoints;
-import id.dope4j.io.OutputObjects;
+import id.dope4j.io.OutputObjects2D;
 import id.dope4j.io.OutputTensor;
 import id.matcv.MatUtils;
 import id.matcv.OpenCvKit;
@@ -176,15 +176,15 @@ public class DopeDecoderUtils {
         return objectsMap;
     }
 
-    public OutputObjects findObjects(OutputKeypoints keypoints, AffinityFields affinityFields) {
+    public OutputObjects2D findObjects(OutputKeypoints keypoints, AffinityFields affinityFields) {
         var objectsMap =
                 matchCenterPointsWithVertices(
                         keypoints.centerPoints(), keypoints.vertices(), affinityFields);
-        return new OutputObjects(
+        return new OutputObjects2D(
                 objectsMap.entrySet().stream()
                         .map(e -> new Cuboid2D(e.getKey(), e.getValue()))
                         .toList());
     }
 
-    public void findPose(OutputObjects objects) {}
+    public void findPose(OutputObjects2D objects) {}
 }

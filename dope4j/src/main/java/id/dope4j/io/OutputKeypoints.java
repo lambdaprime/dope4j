@@ -18,6 +18,7 @@
 package id.dope4j.io;
 
 import id.deeplearningutils.modality.cv.output.Point2D;
+import id.xfunction.XJsonStringBuilder;
 import java.util.List;
 
 /**
@@ -35,5 +36,13 @@ public record OutputKeypoints(List<List<Point2D>> vertices, List<Point2D> center
     /** Center points of all objects */
     public List<Point2D> centerPoints() {
         return centerPoints;
+    }
+
+    @Override
+    public String toString() {
+        var builder = new XJsonStringBuilder();
+        builder.append("centerPoints", centerPoints());
+        builder.append("vertices", vertices());
+        return builder.toString();
     }
 }

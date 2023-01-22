@@ -18,14 +18,22 @@
 package id.dope4j.io;
 
 import id.deeplearningutils.modality.cv.output.Cuboid2D;
+import id.xfunction.XJsonStringBuilder;
 import java.util.List;
 
 /**
  * @author lambdaprime intid@protonmail.com
  */
-public record OutputObjects(List<? extends Cuboid2D> objects) {
+public record OutputObjects2D(List<? extends Cuboid2D> cuboids2d) {
 
-    public List<? extends Cuboid2D> objects() {
-        return objects;
+    public List<? extends Cuboid2D> cuboids2d() {
+        return cuboids2d;
+    }
+
+    @Override
+    public String toString() {
+        var builder = new XJsonStringBuilder();
+        builder.append("cuboids2d", cuboids2d());
+        return builder.toString();
     }
 }

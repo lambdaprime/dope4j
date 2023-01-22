@@ -23,7 +23,7 @@ import ai.djl.ndarray.NDArray;
 import id.dope4j.exceptions.DopeException;
 import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputKeypoints;
-import id.dope4j.io.OutputObjects;
+import id.dope4j.io.OutputObjects2D;
 import id.dope4j.io.OutputTensor;
 import id.matcv.camera.CameraInfo;
 import java.util.Optional;
@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author lambdaprime intid@protonmail.com
  */
-public class ObjectsDecoder implements DopeDecoder<OutputObjects> {
+public class ObjectsDecoder implements DopeDecoder<OutputObjects2D> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectsDecoder.class);
     private static final DopeDecoderUtils decoderUtils = new DopeDecoderUtils();
@@ -53,7 +53,7 @@ public class ObjectsDecoder implements DopeDecoder<OutputObjects> {
 
         void inspectKeypoints(OutputKeypoints keypoints);
 
-        void inspectOjects(OutputObjects objects);
+        void inspectOjects2D(OutputObjects2D objects);
 
         void close();
 
@@ -84,7 +84,7 @@ public class ObjectsDecoder implements DopeDecoder<OutputObjects> {
     }
 
     @Override
-    public Optional<OutputObjects> decode(InputImage inputImage, NDArray outputTensor)
+    public Optional<OutputObjects2D> decode(InputImage inputImage, NDArray outputTensor)
             throws DopeException {
         LOGGER.debug("Input image: {}", inputImage);
         debugNDArray("Input tensor", outputTensor, "0:3, 0:3, 0:3");
@@ -94,10 +94,10 @@ public class ObjectsDecoder implements DopeDecoder<OutputObjects> {
             inspectorOpt.ifPresent(inspector -> inspector.inspectTensor(output));
             var keypoints = decoderUtils.findKeypoints(output, threshold);
             inspectorOpt.ifPresent(inspector -> inspector.inspectKeypoints(keypoints));
-            var objects = decoderUtils.findObjects(keypoints, output.affinities());
-            inspectorOpt.ifPresent(inspector -> inspector.inspectOjects(objects));
-            decoderUtils.findPose(objects);
-            return Optional.of(objects);
+            var objects2d = decoderUtils.findObjects(keypoints, output.affinities());
+            inspectorOpt.ifPresent(inspector -> inspector.inspectOjects2D(objects2d));
+            decoderUtils.findPose(objects2d);
+            return Optional.of(objects2d);
         } finally {
             inspectorOpt.ifPresent(Inspector::close);
         }

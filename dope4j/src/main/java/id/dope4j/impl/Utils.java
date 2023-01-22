@@ -25,7 +25,7 @@ import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
-import id.deeplearningutils.modality.cv.output.Point2D;
+import id.deeplearningutils.modality.cv.output.Cuboid2D;
 import id.dope4j.DopeConstants;
 import id.dope4j.io.AffinityFields;
 import id.matcv.OpenCvKit;
@@ -35,9 +35,8 @@ import id.xfunction.Preconditions;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
-import java.util.stream.Stream;
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,9 +129,9 @@ public class Utils {
         return model;
     }
 
-    public static List<Point2D> scalePoints(Stream<? extends Point> points, int scale) {
-        return points.map(p -> new Point2D(p.getX() * scale, p.getY() * scale)).toList();
-    }
+    //    public static List<Point2D> scalePoints(Stream<? extends Point> points, int scale) {
+    //        return points.map(p -> new Point2D(p.getX() * scale, p.getY() * scale)).toList();
+    //    }
 
     //    public static Landmark scaleLandmark(Landmark landmark, int scale) {
     //        return new Landmark(
@@ -177,5 +176,16 @@ public class Utils {
                                                     x / DopeConstants.SCALE_FACTOR)
                                             .mul(DopeConstants.SCALE_FACTOR)));
         }
+    }
+
+    public static void drawCuboid2D(Mat mat, Cuboid2D cuboid, double scale, Scalar color) {
+        cuboid.getEdges()
+                .forEach(
+                        e ->
+                                Imgproc.line(
+                                        mat,
+                                        converters.copyToPoint(e.getPointA(), scale),
+                                        converters.copyToPoint(e.getPointB(), scale),
+                                        color));
     }
 }
