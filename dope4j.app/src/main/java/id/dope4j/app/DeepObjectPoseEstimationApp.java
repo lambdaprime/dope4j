@@ -80,7 +80,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
     }
 
     public void run() throws Exception {
-        XLogger.load("logging-dope4j.properties");
+        if (commandOptions.isOptionTrue("debug")) XLogger.load("logging-dope4j-debug.properties");
         var modelUrl = commandOptions.getRequiredOption("modelUrl");
         LOGGER.info("Model URL: {}", modelUrl);
         var imagePath = Paths.get(commandOptions.getRequiredOption("imagePath"));
@@ -132,7 +132,6 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                     if (pose.isEmpty()) {
                         pose = service.analyze(imageFile).stream().findFirst();
                     }
-                    pose.ifPresent(System.out::println);
                 } catch (Exception e) {
                     LOGGER.error("Failed to decode image " + imageFile + ": ", e);
                 }

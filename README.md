@@ -59,6 +59,8 @@ Optional options:
 
 `-threshold=<double>` - set threshold value which is used to filter the keypoints. Default is "0.01".
 
+`-debug=<true|false>` - print debug information and log it to `dope4j-debug.log` inside system temporary folder. Default is "false".
+
 `-totalRunTime=<true|false>` - print total execution time when command finishes.
 
 # Contributors
