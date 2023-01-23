@@ -28,25 +28,35 @@ import static id.dope4j.impl.Utils.debugNDArray;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.types.Shape;
 import id.deeplearningutils.modality.cv.output.Cuboid2D;
+import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.deeplearningutils.modality.cv.output.Point2D;
+import id.deeplearningutils.modality.cv.output.Pose;
 import id.dope4j.DopeConstants;
 import id.dope4j.exceptions.NoKeypointsFoundException;
+import id.dope4j.impl.DjlOpenCvConverters;
 import id.dope4j.io.AffinityFields;
 import id.dope4j.io.OutputKeypoints;
 import id.dope4j.io.OutputObjects2D;
+import id.dope4j.io.OutputPoses;
 import id.dope4j.io.OutputTensor;
+import id.matcv.MatConverters;
 import id.matcv.MatUtils;
 import id.matcv.OpenCvKit;
 import id.matcv.accessors.Float2DAccessor;
+import id.matcv.camera.CameraInfo;
 import id.mathcalc.Vector2f;
 import id.xfunction.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
 import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.MatOfPoint3f;
 import org.opencv.core.Rect;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -64,8 +74,10 @@ import org.slf4j.LoggerFactory;
 public class DopeDecoderUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DopeDecoderUtils.class);
+    private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
     private MatUtils utils = new MatUtils();
     private OpenCvKit openCvKit = new OpenCvKit();
+    private MatConverters matConverters = new MatConverters();
 
     public OutputTensor readDopeOutput(NDArray tensor) {
         Shape tensorShape = tensor.getShape();
@@ -186,5 +198,43 @@ public class DopeDecoderUtils {
                         .toList());
     }
 
-    public void findPose(OutputObjects2D objects) {}
+    public OutputPoses findPoses(
+            OutputObjects2D objects, Cuboid3D cuboid3d, CameraInfo cameraInfo) {
+        var points3d = converters.copyToMatOfPoint3f(cuboid3d);
+        utils.debugMat("points3d", points3d);
+        var cameraMat = cameraInfo.cameraMatrix().toMat64F();
+        utils.debugMat("cameraMat", cameraMat);
+        var distortionMat = cameraInfo.distortionCoefficients().toMatOfDouble();
+        utils.debugShape("distortionMat", distortionMat);
+        var objectPoints2d =
+                objects.cuboids2d().stream()
+                        .map(
+                                points2d ->
+                                        converters.copyToMatOfPoint2f(
+                                                points2d, DopeConstants.SCALE_FACTOR))
+                        .toList();
+        var poses =
+                objectPoints2d.stream()
+                        .map(points2d -> findPoses(points2d, points3d, cameraMat, distortionMat))
+                        .toList();
+        var objects2d = objectPoints2d.stream().map(converters::copyToCuboid2D).toList();
+        return new OutputPoses(cuboid3d, objects2d, poses);
+    }
+
+    private Pose findPoses(
+            MatOfPoint2f points2d,
+            MatOfPoint3f points3d,
+            Mat cameraMat,
+            MatOfDouble distortionMat) {
+        var rvec = new Mat();
+        var tvec = new Mat();
+        Calib3d.solvePnP(points3d, points2d, cameraMat, distortionMat, rvec, tvec);
+        utils.debugMat("rvec", rvec);
+        utils.debugMat("tvec", tvec);
+        Calib3d.projectPoints(points3d, rvec, tvec, cameraMat, distortionMat, points2d);
+        var position = converters.copyToPoint(tvec);
+        if (position.getZ() < 0) position = position.scaled(-1);
+        var orientation = matConverters.copyToVector3d(rvec);
+        return new Pose(position, orientation);
+    }
 }

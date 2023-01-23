@@ -24,13 +24,15 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.impl.RecordNamingStrategyPatchModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import id.deeplearningutils.modality.cv.output.Cuboid3D;
+import id.deeplearningutils.modality.cv.output.Point3D;
 import id.dope4j.DeepObjectPoseEstimationService;
 import id.dope4j.DopeConstants;
 import id.dope4j.decoders.ObjectsDecoder;
 import id.dope4j.decoders.ObjectsDecoder.Inspector;
 import id.dope4j.impl.CacheFileMapper;
 import id.dope4j.io.InputImage;
-import id.dope4j.io.OutputObjects2D;
+import id.dope4j.io.OutputPoses;
 import id.matcv.camera.CameraInfo;
 import id.xfunction.ResourceUtils;
 import id.xfunction.cli.ArgumentParsingException;
@@ -46,6 +48,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import nu.pattern.OpenCV;
 import org.opencv.core.Mat;
 import org.slf4j.Logger;
@@ -94,14 +97,27 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         }
         var cameraInfoPath = commandOptions.getRequiredOption("cameraInfo");
         LOGGER.info("Reading camera info from: {}", cameraInfoPath);
+        var objectSize = commandOptions.getRequiredOption("objectSize");
+        LOGGER.info("Object cuboid size: {}", objectSize);
         objectsDecoder =
                 new ObjectsDecoder(
                         commandOptions
                                 .getOption("threshold")
                                 .map(Double::parseDouble)
                                 .orElse(DopeConstants.DEFAULT_PEAK_THRESHOLD),
+                        newCuboid(objectSize),
                         readCameraInfo(Paths.get(cameraInfoPath)),
                         this);
+        commandOptions
+                .getOption("cameraInfo")
+                .map(Paths::get)
+                .ifPresent(
+                        path -> {
+                            LOGGER.info("Reading camera info from: {}", path);
+                            var cameraInfo = objectsDecoder.cameraInfo = readCameraInfo(path);
+                            LOGGER.info("Camera info: {}", cameraInfo);
+                            objectsDecoder.cameraInfo = cameraInfo;
+                        });
         if (!imagePath.toFile().exists())
             throw new RuntimeException("Path does not exist: " + imagePath);
         var imageFilesList = listImageFiles(imagePath);
@@ -109,7 +125,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         if (imageFilesList.isEmpty())
             throw new RuntimeException("No image files found in " + imagePath);
         try (var service =
-                new DeepObjectPoseEstimationService<OutputObjects2D>(modelUrl, objectsDecoder)) {
+                new DeepObjectPoseEstimationService<OutputPoses>(modelUrl, objectsDecoder)) {
             for (var imageFile : imageFilesList) {
                 try {
                     var pose = processFromCache(imageFile);
@@ -122,6 +138,18 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                 }
             }
         }
+    }
+
+    private Cuboid3D newCuboid(String objectSize) {
+        var vals =
+                Pattern.compile(",")
+                        .splitAsStream(objectSize)
+                        .map(String::trim)
+                        .mapToDouble(Double::parseDouble)
+                        .toArray();
+        if (vals.length != 3)
+            throw new ArgumentParsingException("Could not parse objectSize value: " + objectSize);
+        return new Cuboid3D(new Point3D(), vals[0], vals[1], vals[2]);
     }
 
     private CameraInfo readCameraInfo(Path path) {
@@ -138,7 +166,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         }
     }
 
-    private Optional<OutputObjects2D> processFromCache(Path imageFile) throws IOException {
+    private Optional<OutputPoses> processFromCache(Path imageFile) throws IOException {
         if (cacheFileMapper.isEmpty()) return Optional.empty();
         var tensorFile = cacheFileMapper.get().getTensorFile(imageFile);
         if (!tensorFile.toFile().exists()) return Optional.empty();
@@ -162,19 +190,24 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         if (args.length < 1) {
             usage();
         } else {
-            var options = CommandOptions.collectOptions(args);
-            var startAt = Instant.now();
+            Optional<Instant> startAtOpt = Optional.empty();
             try {
+                var options = CommandOptions.collectOptions(args);
+                if (options.isOptionTrue("totalRunTime")) startAtOpt = Optional.of(Instant.now());
                 new DeepObjectPoseEstimationApp(options).run();
                 code = 0;
             } catch (ArgumentParsingException e) {
                 System.err.println(e.getMessage());
-                usage();
+                System.err.println(
+                        "Run command without arguments to see 'Usage' for more information.");
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if (options.isOptionTrue("totalRunTime"))
-                LOGGER.debug("Total execution time: {}", Duration.between(startAt, Instant.now()));
+            startAtOpt.ifPresent(
+                    startAt ->
+                            LOGGER.debug(
+                                    "Total execution time: {}",
+                                    Duration.between(startAt, Instant.now())));
         }
         System.exit(code);
     }
@@ -190,6 +223,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                 commandOptions.isOptionTrue("showCenterPointBeliefs"),
                 commandOptions.isOptionTrue("showAffinityFields"),
                 commandOptions.isOptionTrue("showMatchedVertices"),
-                commandOptions.isOptionTrue("showCuboids2D"));
+                commandOptions.isOptionTrue("showCuboids2D"),
+                commandOptions.isOptionTrue("showProjectedCuboids2D"));
     }
 }

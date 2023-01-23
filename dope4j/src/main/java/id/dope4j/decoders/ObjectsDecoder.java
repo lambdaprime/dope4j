@@ -20,10 +20,12 @@ package id.dope4j.decoders;
 import static id.dope4j.impl.Utils.debugNDArray;
 
 import ai.djl.ndarray.NDArray;
+import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.dope4j.exceptions.DopeException;
 import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputKeypoints;
 import id.dope4j.io.OutputObjects2D;
+import id.dope4j.io.OutputPoses;
 import id.dope4j.io.OutputTensor;
 import id.matcv.camera.CameraInfo;
 import java.util.Optional;
@@ -37,7 +39,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author lambdaprime intid@protonmail.com
  */
-public class ObjectsDecoder implements DopeDecoder<OutputObjects2D> {
+public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectsDecoder.class);
     private static final DopeDecoderUtils decoderUtils = new DopeDecoderUtils();
@@ -55,6 +57,8 @@ public class ObjectsDecoder implements DopeDecoder<OutputObjects2D> {
 
         void inspectOjects2D(OutputObjects2D objects);
 
+        void inspectPoses(OutputPoses poses);
+
         void close();
 
         /**
@@ -71,20 +75,25 @@ public class ObjectsDecoder implements DopeDecoder<OutputObjects2D> {
     private double threshold;
     private Optional<Inspector.Builder> inspectorBuilder = Optional.empty();
     public CameraInfo cameraInfo;
+    private Cuboid3D cuboid3DModel;
 
-    public ObjectsDecoder(double threshold, CameraInfo cameraInfo) {
-        this(threshold, cameraInfo, null);
+    public ObjectsDecoder(double threshold, Cuboid3D cuboid3DModel, CameraInfo cameraInfo) {
+        this(threshold, cuboid3DModel, cameraInfo, null);
     }
 
     public ObjectsDecoder(
-            double threshold, CameraInfo cameraInfo, Inspector.Builder inspectorBuilder) {
+            double threshold,
+            Cuboid3D cuboid3DModel,
+            CameraInfo cameraInfo,
+            Inspector.Builder inspectorBuilder) {
         this.threshold = threshold;
+        this.cuboid3DModel = cuboid3DModel;
         this.cameraInfo = cameraInfo;
         this.inspectorBuilder = Optional.ofNullable(inspectorBuilder);
     }
 
     @Override
-    public Optional<OutputObjects2D> decode(InputImage inputImage, NDArray outputTensor)
+    public Optional<OutputPoses> decode(InputImage inputImage, NDArray outputTensor)
             throws DopeException {
         LOGGER.debug("Input image: {}", inputImage);
         debugNDArray("Input tensor", outputTensor, "0:3, 0:3, 0:3");
@@ -96,8 +105,9 @@ public class ObjectsDecoder implements DopeDecoder<OutputObjects2D> {
             inspectorOpt.ifPresent(inspector -> inspector.inspectKeypoints(keypoints));
             var objects2d = decoderUtils.findObjects(keypoints, output.affinities());
             inspectorOpt.ifPresent(inspector -> inspector.inspectOjects2D(objects2d));
-            decoderUtils.findPose(objects2d);
-            return Optional.of(objects2d);
+            var poses = decoderUtils.findPoses(objects2d, cuboid3DModel, cameraInfo);
+            inspectorOpt.ifPresent(inspector -> inspector.inspectPoses(poses));
+            return Optional.of(poses);
         } finally {
             inspectorOpt.ifPresent(Inspector::close);
         }

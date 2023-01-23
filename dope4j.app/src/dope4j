@@ -7,7 +7,9 @@ import java.nio.file.*;
 
 /**
  * Cross-platform launcher script for dope4j.
- * 
+ *
+ * Website: https://github.com/lambdaprime/dope4j
+ *
  * @author lambdaprime intid@protonmail.com
  */
  class Launcher {

@@ -59,7 +59,7 @@ task copyLibs(type: Copy) {
 }
 
 task copyConfig(type: Copy) {
-  from "$projectDir/config"
+  from "${project.rootDir}/config"
   into "${packageDir}/config"
 }
 

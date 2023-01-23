@@ -26,6 +26,7 @@ import id.dope4j.impl.Utils;
 import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputKeypoints;
 import id.dope4j.io.OutputObjects2D;
+import id.dope4j.io.OutputPoses;
 import id.dope4j.io.OutputTensor;
 import id.matcv.RgbColors;
 import java.util.Optional;
@@ -46,6 +47,7 @@ class Dope4jInspector implements Inspector {
     private boolean showAffinityFields;
     private boolean showMatchedVertices;
     private boolean showCuboid2D;
+    private boolean showProjectedCuboids2D;
     private Optional<SaveStateToCacheDecoder> saveStateOpt;
 
     Dope4jInspector(
@@ -56,7 +58,8 @@ class Dope4jInspector implements Inspector {
             boolean showCenterPointBeliefs,
             boolean showAffinityFields,
             boolean showMatchedVertices,
-            boolean showCuboid2D) {
+            boolean showCuboid2D,
+            boolean showProjectedCuboids2D) {
         this.mat = mat;
         this.inputImage = inputImage;
         this.showVerticesBeliefs = showVerticesBeliefs;
@@ -64,6 +67,7 @@ class Dope4jInspector implements Inspector {
         this.showAffinityFields = showAffinityFields;
         this.showMatchedVertices = showMatchedVertices;
         this.showCuboid2D = showCuboid2D;
+        this.showProjectedCuboids2D = showProjectedCuboids2D;
         saveStateOpt = cacheFileMapper.map(SaveStateToCacheDecoder::new);
     }
 
@@ -124,6 +128,14 @@ class Dope4jInspector implements Inspector {
         }
         if (showCenterPointBeliefs) {
             Utils.drawKeypoints(mat, keypoints.centerPoints());
+            showImage = true;
+        }
+    }
+
+    @Override
+    public void inspectPoses(OutputPoses poses) {
+        if (showProjectedCuboids2D) {
+            poses.objects2d().forEach(cuboid -> Utils.drawCuboid2D(mat, cuboid, 1, RgbColors.RED));
             showImage = true;
         }
     }
