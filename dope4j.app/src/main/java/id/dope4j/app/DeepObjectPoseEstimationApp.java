@@ -41,6 +41,7 @@ import id.xfunction.logging.XLogger;
 import id.xfunction.nio.file.FilePredicates;
 import id.xfunction.nio.file.XFiles;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -66,13 +67,19 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
     private CommandOptions commandOptions;
     private ObjectsDecoder objectsDecoder;
     private Optional<CacheFileMapper> cacheFileMapper = Optional.empty();
+    private PrintStream out;
 
     static {
         OpenCV.loadLocally();
     }
 
     public DeepObjectPoseEstimationApp(CommandOptions commandOptions) {
+        this(commandOptions, System.out);
+    }
+
+    public DeepObjectPoseEstimationApp(CommandOptions commandOptions, PrintStream out) {
         this.commandOptions = commandOptions;
+        this.out = out;
     }
 
     private static void usage() throws IOException {
@@ -81,17 +88,15 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
 
     public void run() throws Exception {
         if (commandOptions.isOptionTrue("debug")) XLogger.load("logging-dope4j-debug.properties");
-        var modelUrl = commandOptions.getRequiredOption("modelUrl");
-        LOGGER.info("Model URL: {}", modelUrl);
         var imagePath = Paths.get(commandOptions.getRequiredOption("imagePath"));
-        LOGGER.info("Image path: {}", imagePath);
+        LOGGER.info("Image path: {}", imagePath.toAbsolutePath());
         if (commandOptions.isOptionTrue("cache")) {
             cacheFileMapper =
                     commandOptions
                             .getOption("cacheFolder")
                             .map(Paths::get)
                             .or(() -> XFiles.TEMP_FOLDER.map(p -> p.resolve(CACHE_FOLDER_NAME)))
-                            .or(() -> Optional.of(Paths.get(CACHE_FOLDER_NAME)))
+                            .or(() -> Optional.of(Paths.get(CACHE_FOLDER_NAME).toAbsolutePath()))
                             .map(CacheFileMapper::new);
             LOGGER.info("Cache folder: {}", cacheFileMapper.get().getCacheHome());
         }
@@ -124,18 +129,26 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         LOGGER.info("Found {} images to run inference on", imageFilesList.size());
         if (imageFilesList.isEmpty())
             throw new RuntimeException("No image files found in " + imagePath);
-        try (var service =
-                new DeepObjectPoseEstimationService<OutputPoses>(modelUrl, objectsDecoder)) {
+        Optional<DeepObjectPoseEstimationService<OutputPoses>> serviceOpt = Optional.empty();
+        try {
             for (var imageFile : imageFilesList) {
                 try {
-                    var pose = processFromCache(imageFile);
-                    if (pose.isEmpty()) {
-                        pose = service.analyze(imageFile).stream().findFirst();
-                    }
+                    if (processFromCache(imageFile).isPresent()) continue;
+                    var service =
+                            serviceOpt.orElseGet(
+                                    () -> {
+                                        var modelUrl = commandOptions.getRequiredOption("modelUrl");
+                                        LOGGER.info("Model URL: {}", modelUrl);
+                                        return new DeepObjectPoseEstimationService<OutputPoses>(
+                                                modelUrl, objectsDecoder);
+                                    });
+                    service.analyze(imageFile).stream().findFirst();
                 } catch (Exception e) {
                     LOGGER.error("Failed to decode image " + imageFile + ": ", e);
                 }
             }
+        } finally {
+            if (serviceOpt.isPresent()) serviceOpt.get().close();
         }
     }
 
@@ -215,6 +228,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
     public Inspector build(InputImage inputImage) {
         Mat mat = (Mat) inputImage.image().getWrappedImage();
         return new Dope4jInspector(
+                out,
                 mat,
                 inputImage,
                 cacheFileMapper,

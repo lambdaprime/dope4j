@@ -1,6 +1,12 @@
-# Testing against DOPE results
+# Prereqs
 
-`calc_dope_results.py` runs DOPE original decoder for all images in `testset` folder and stores all results to results.json file. This file later used for comparison with `dope4j` results.
+```
+export LD_LIBRARY_PATH=<PATH_TO_TENSOR_RT/lib:<PATH_TO_CUDNN>/lib
+```
+
+# Gathering DOPE original results
+
+`calc_dope_results.py` runs DOPE original decoder for all images in `testset` folder and stores all results to results.json file. This file later used by tests for comparison with `dope4j` results.
 
 Run instructions:
 

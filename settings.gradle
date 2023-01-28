@@ -1,2 +1,3 @@
 include 'dope4j'
 include 'dope4j.app'
+include 'dope4j.tests'

@@ -16,7 +16,7 @@ dependencies {
     "org.slf4j:slf4j-jdk14"
   ]);
 
-  addDependencies(this, ["implementation"], "2.14.1", [
+  addDependencies(this, ["implementation", "apiElements"], "2.14.1", [
     "com.fasterxml.jackson.core:jackson-databind",
     "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
     "com.fasterxml.jackson.module:jackson-module-parameter-names"

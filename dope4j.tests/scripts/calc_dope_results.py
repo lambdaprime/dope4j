@@ -17,6 +17,9 @@ def printImg(img):
             for c in range(3):
                 print(img.item(x, y, c))
 
+def fmt(num):
+    return round(num, 3)
+
 print("Starting")
 
 DEBUG=False
@@ -56,7 +59,7 @@ pnp_solver.set_dist_coeffs(dist_coeffs)
 
 testsetDir = "/tmp/dope4j/testset"
 
-allResults = []
+outFile = open(testsetDir + '/results.json', 'w')
 for filePath in os.listdir(testsetDir):
     if not filePath.endswith(".jpg"):
         continue
@@ -75,22 +78,28 @@ for filePath in os.listdir(testsetDir):
         img,
         config_detect)
 
-    outResults = []
+    objects2d = []
+    poses = []
     for result in results:
-        outResults.append({
-            "location": np.array(result['location']).tolist(),
-            "quaternion": np.array(result['quaternion']).tolist(),
-            "cuboid2d": np.array(result['cuboid2d']).tolist(),
-            'projected_cuboid': np.array(result['projected_points']).tolist()
-        })
-    allResults.append({
-        "file": filePath,
-        "results": outResults,
-    })
-
-outFile = open(testsetDir + '/results.json', 'w')
-outJson = json.dumps(allResults, indent=4)
-print(outJson)
-outFile.write(outJson)
+        objects2d.append(np.array(result['projected_points']).tolist())
+        poses.append({
+                "position": {
+                    "x": fmt(result['location'][0]),
+                    "y": fmt(result['location'][1]),
+                    "z": fmt(result['location'][2])
+                },
+                "orientation": {
+                    "values": [fmt(n) for n in np.array(result['quaternion']).tolist()]
+                }
+            })
+    outJson = json.dumps({
+        "imagePath": filePath,
+        "detectedPoses": {
+            'objects2d': objects2d,
+            "poses": poses
+        }
+    }, indent=4)
+    print(outJson)
+    outFile.write(outJson)
 
 outFile.close()

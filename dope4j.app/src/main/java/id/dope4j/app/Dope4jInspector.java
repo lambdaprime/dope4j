@@ -30,6 +30,7 @@ import id.dope4j.io.OutputPoses;
 import id.dope4j.io.OutputTensor;
 import id.matcv.RgbColors;
 import id.xfunction.XJsonStringBuilder;
+import java.io.PrintStream;
 import java.util.Optional;
 import org.opencv.core.Mat;
 import org.opencv.highgui.HighGui;
@@ -50,8 +51,10 @@ class Dope4jInspector implements Inspector {
     private boolean showCuboid2D;
     private boolean showProjectedCuboids2D;
     private Optional<SaveStateToCacheDecoder> saveStateOpt;
+    private PrintStream out;
 
     Dope4jInspector(
+            PrintStream out,
             Mat mat,
             InputImage inputImage,
             Optional<CacheFileMapper> cacheFileMapper,
@@ -61,6 +64,7 @@ class Dope4jInspector implements Inspector {
             boolean showMatchedVertices,
             boolean showCuboid2D,
             boolean showProjectedCuboids2D) {
+        this.out = out;
         this.mat = mat;
         this.inputImage = inputImage;
         this.showVerticesBeliefs = showVerticesBeliefs;
@@ -138,7 +142,7 @@ class Dope4jInspector implements Inspector {
         var builder = new XJsonStringBuilder();
         builder.append("imagePath", inputImage.path());
         builder.append("detectedPoses", poses);
-        System.out.println(builder.toString());
+        out.println(builder.toString());
         if (showProjectedCuboids2D) {
             poses.objects2d().forEach(cuboid -> Utils.drawCuboid2D(mat, cuboid, 1, RgbColors.RED));
             showImage = true;
