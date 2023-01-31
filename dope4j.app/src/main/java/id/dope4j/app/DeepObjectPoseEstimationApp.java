@@ -37,6 +37,7 @@ import id.matcv.camera.CameraInfo;
 import id.xfunction.ResourceUtils;
 import id.xfunction.cli.ArgumentParsingException;
 import id.xfunction.cli.CommandOptions;
+import id.xfunction.function.LazyInitializer;
 import id.xfunction.logging.XLogger;
 import id.xfunction.nio.file.FilePredicates;
 import id.xfunction.nio.file.XFiles;
@@ -129,26 +130,26 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         LOGGER.info("Found {} images to run inference on", imageFilesList.size());
         if (imageFilesList.isEmpty())
             throw new RuntimeException("No image files found in " + imagePath);
-        Optional<DeepObjectPoseEstimationService<OutputPoses>> serviceOpt = Optional.empty();
+        var serviceGetter =
+                new LazyInitializer<DeepObjectPoseEstimationService<OutputPoses>>(
+                        () -> {
+                            var modelUrl = commandOptions.getRequiredOption("modelUrl");
+                            LOGGER.info("Model URL: {}", modelUrl);
+                            return new DeepObjectPoseEstimationService<OutputPoses>(
+                                    modelUrl, objectsDecoder);
+                        });
         try {
             for (var imageFile : imageFilesList) {
                 try {
                     if (processFromCache(imageFile).isPresent()) continue;
-                    var service =
-                            serviceOpt.orElseGet(
-                                    () -> {
-                                        var modelUrl = commandOptions.getRequiredOption("modelUrl");
-                                        LOGGER.info("Model URL: {}", modelUrl);
-                                        return new DeepObjectPoseEstimationService<OutputPoses>(
-                                                modelUrl, objectsDecoder);
-                                    });
+                    var service = serviceGetter.get();
                     service.analyze(imageFile).stream().findFirst();
                 } catch (Exception e) {
                     LOGGER.error("Failed to decode image " + imageFile + ": ", e);
                 }
             }
         } finally {
-            if (serviceOpt.isPresent()) serviceOpt.get().close();
+            serviceGetter.ifInitialized(AutoCloseable::close);
         }
     }
 
