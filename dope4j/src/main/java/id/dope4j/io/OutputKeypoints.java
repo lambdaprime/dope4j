@@ -26,6 +26,8 @@ import java.util.List;
  */
 public record OutputKeypoints(List<List<Point2D>> vertices, List<Point2D> centerPoints) {
 
+    public static final OutputKeypoints EMPTY = new OutputKeypoints(List.of(), List.of());
+
     /**
      * There are 8 lists in total which represent 8 corners of 3D cuboids which surround the object
      */

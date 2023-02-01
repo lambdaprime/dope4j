@@ -31,14 +31,11 @@ import id.deeplearningutils.modality.cv.output.Cuboid2D;
 import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.deeplearningutils.modality.cv.output.Point2D;
 import id.dope4j.DopeConstants;
-import id.dope4j.exceptions.NoKeypointsFoundException;
-import id.dope4j.impl.DjlOpenCvConverters;
 import id.dope4j.io.AffinityFields;
 import id.dope4j.io.OutputKeypoints;
 import id.dope4j.io.OutputObjects2D;
 import id.dope4j.io.OutputPoses;
 import id.dope4j.io.OutputTensor;
-import id.matcv.MatConverters;
 import id.matcv.MatUtils;
 import id.matcv.OpenCvKit;
 import id.matcv.accessors.Float2DAccessor;
@@ -70,10 +67,8 @@ import org.slf4j.LoggerFactory;
 public class DopeDecoderUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DopeDecoderUtils.class);
-    private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
     private MatUtils utils = new MatUtils();
     private OpenCvKit openCvKit = new OpenCvKit();
-    private MatConverters matConverters = new MatConverters();
 
     public OutputTensor readDopeOutput(NDArray tensor) {
         Shape tensorShape = tensor.getShape();
@@ -101,11 +96,8 @@ public class DopeDecoderUtils {
      *
      * <p>{@link DopeConstants#PEAK_THRESHOLD} allows to configure which predictions are ignored and
      * which not.
-     *
-     * @throws NoKeypointsFoundException
      */
-    public OutputKeypoints findKeypoints(OutputTensor output, double threshold)
-            throws NoKeypointsFoundException {
+    public OutputKeypoints findKeypoints(OutputTensor output, double threshold) {
         var beliefMaps = output.beliefMaps();
         List<List<Point>> allPeaks = new ArrayList<>();
         List<List<Point2D>> keypoints = new ArrayList<>();
@@ -154,8 +146,10 @@ public class DopeDecoderUtils {
                             .toList());
         }
 
-        if (keypointsCount == 0)
-            throw new NoKeypointsFoundException(String.format("Peaks threshold %s", threshold));
+        if (keypointsCount == 0) {
+            LOGGER.warn("No keypoints found, peaks threshold {}", threshold);
+            return OutputKeypoints.EMPTY;
+        }
 
         LOGGER.debug("Detected peaks: {}", allPeaks);
         LOGGER.debug("Detected keypoints: {}", keypoints);
@@ -214,6 +208,7 @@ public class DopeDecoderUtils {
     }
 
     public OutputObjects2D findObjects(OutputKeypoints keypoints, AffinityFields affinityFields) {
+        if (keypoints == OutputKeypoints.EMPTY) return OutputObjects2D.EMPTY;
         var objectsMap =
                 matchCenterPointsWithVertices(
                         keypoints.centerPoints(), keypoints.vertices(), affinityFields);

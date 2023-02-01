@@ -21,6 +21,7 @@ import static id.dope4j.impl.Utils.debugAsInt;
 import static id.dope4j.impl.Utils.debugNDArray;
 import static id.dope4j.impl.Utils.normalize;
 
+import ai.djl.inference.Predictor;
 import ai.djl.modality.cv.Image;
 import ai.djl.modality.cv.util.NDImageUtils;
 import ai.djl.ndarray.NDArray;
@@ -35,6 +36,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Whatever exception is thrown by {@link Translator} will be thrown by {@link Predictor} as {@link
+ * TranslateException} and the prediction will stop. To avoid this and keep prediction going we use
+ * {@link Optional} and return {@link Optional#empty()} in case of errors.
+ *
  * @author lambdaprime intid@protonmail.com
  */
 public class DopeTranslator<T> implements Translator<InputImage, Optional<T>> {

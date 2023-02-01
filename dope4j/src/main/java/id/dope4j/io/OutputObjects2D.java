@@ -26,6 +26,8 @@ import java.util.List;
  */
 public record OutputObjects2D(List<? extends Cuboid2D> cuboids2d) {
 
+    public static final OutputObjects2D EMPTY = new OutputObjects2D(List.of());
+
     public List<? extends Cuboid2D> cuboids2d() {
         return cuboids2d;
     }
