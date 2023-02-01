@@ -17,6 +17,8 @@ export LD_LIBRARY_PATH=<PATH_TO_TENSOR_RT/lib:<PATH_TO_CUDNN>/lib
 
 # Documentation
 
+[Conformance to DOPE original results](dope4j.tests/Conformance_to_DOPE.md)
+
 [Development](DEVELOPMENT.md)
 
 # Usage

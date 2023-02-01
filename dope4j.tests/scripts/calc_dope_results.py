@@ -18,7 +18,7 @@ def printImg(img):
                 print(img.item(x, y, c))
 
 def fmt(num):
-    return round(num, 3)
+    return num #round(num, 3)
 
 print("Starting")
 

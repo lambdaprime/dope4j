@@ -20,9 +20,9 @@ package id.dope4j;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import id.dope4j.app.DeepObjectPoseEstimationApp;
-import id.xfunction.XJson;
 import id.xfunction.cli.CommandOptions;
 import id.xfunction.nio.file.FilePredicates;
+import id.xfunctiontests.XAsserts;
 import java.io.ByteArrayOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -42,13 +42,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class Dope4jAppIT {
 
+    private static final double POSE_DELTA = 0.00001;
     private static final Path imagePath = Paths.get("testset");
     private static final List<JsonNode> dopeResults = new ArrayList<>();
     private static final List<JsonNode> dope4jResults = new ArrayList<>();
 
     @BeforeAll
     public static void setupAll() throws Exception {
-        XJson.setLimitDecimalPlaces(3);
         var mapper = new JsonMapper();
         mapper.getFactory()
                 .createParser(new FileReader("testset/results.json"))
@@ -93,9 +93,20 @@ public class Dope4jAppIT {
         var expectedPoses = expected.get("detectedPoses").findValue("poses");
         var actualPoses = actual.get("detectedPoses").findValue("poses");
         for (int i = 0; i < expectedPoses.size(); i++) {
-            Assertions.assertEquals(
-                    expectedPoses.get(i).get("position").toString(),
-                    actualPoses.get(i).get("position").toString());
+            var expectedPose = expectedPoses.get(i).get("position");
+            var actualPose = actualPoses.get(i).get("position");
+            XAsserts.assertSimilar(
+                    expectedPose.get("x").doubleValue(),
+                    actualPose.get("x").doubleValue(),
+                    POSE_DELTA);
+            XAsserts.assertSimilar(
+                    expectedPose.get("y").doubleValue(),
+                    actualPose.get("y").doubleValue(),
+                    POSE_DELTA);
+            XAsserts.assertSimilar(
+                    expectedPose.get("z").doubleValue(),
+                    actualPose.get("z").doubleValue(),
+                    POSE_DELTA);
         }
     }
 

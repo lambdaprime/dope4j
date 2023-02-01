@@ -37,10 +37,17 @@ public record OutputTensor(NDArray tensor, NDArray beliefMaps, AffinityFields af
     /**
      * Tensor which represents Belief Maps for all keypoints.
      *
-     * <p>There expect to be {@link DopeConstants#BELIEF_MAPS_COUNT} Belief Maps - one for each 8
-     * vertices of an object + 1 for center points.
+     * <p>There expected to be {@link DopeConstants#BELIEF_MAPS_COUNT} Belief Maps - one for each 8
+     * vertices of object cuboid + 1 for cuboid center point.
      *
-     * <p>For memory purposes this effectively is a reference to subarray inside {@link #tensor}
+     * <p>For example beliefMaps[i][x][y] describes confidence of the network that vertex Vi of
+     * object's cuboid is located at (x, y) coordinates of the input image.
+     *
+     * <p>Because on image there may be multiple of similar objects it means that on one
+     * beliefMaps[i] there can be multiple of different Vi vertices detected, which belongs to
+     * different objects on the image.
+     *
+     * <p>For memory purposes this effectively is a reference to subarray inside {@link #tensor}.
      */
     public NDArray beliefMaps() {
         return beliefMaps;
