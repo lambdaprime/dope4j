@@ -22,7 +22,6 @@ import id.deeplearningutils.modality.cv.output.Cuboid2D;
 import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.deeplearningutils.modality.cv.output.Point2D;
 import id.deeplearningutils.modality.cv.output.Point3D;
-import id.matcv.MatConverters;
 import id.xfunction.Preconditions;
 import java.util.ArrayList;
 import org.opencv.core.Mat;
@@ -32,8 +31,6 @@ import org.opencv.core.MatOfPoint3f;
 import org.opencv.utils.Converters;
 
 public class DjlOpenCvConverters {
-
-    private static final MatConverters converters = new MatConverters();
 
     public org.opencv.core.Point copyToPoint(Point p) {
         return new org.opencv.core.Point(p.getX(), p.getY());
@@ -56,8 +53,8 @@ public class DjlOpenCvConverters {
     }
 
     /**
-     * Points are gathered in strict order defined in {@link Cuboid2D}. Total number of points
-     * returned is 9 where center point is the last one.
+     * Points are gathered in strict order defined in {@link Cuboid2D}. Only non null points are
+     * copied. Center point is copied the last one.
      */
     public MatOfPoint2f copyToMatOfPoint2f(Cuboid2D cuboid2d) {
         return copyToMatOfPoint2f(cuboid2d, 1);
@@ -67,23 +64,25 @@ public class DjlOpenCvConverters {
      * @see #copyToMatOfPoint2f(Cuboid2D)
      */
     public MatOfPoint2f copyToMatOfPoint2f(Cuboid2D cuboid2d, double scale) {
-        var rows = cuboid2d.getVertices().size() + 1;
+        var rows = cuboid2d.getAvailableVertexCount() + 1;
         var ar = new float[2 * rows];
-        var vertices = cuboid2d.getVertices();
-        for (int i = 0; i < vertices.size(); i++) {
-            var p = vertices.get(i);
-            var j = i * 2;
+        int c = 0;
+        for (var p : cuboid2d.getVertices()) {
+            if (p == null) continue;
+            var j = c * 2;
             ar[j] = (float) (p.getX() * scale);
             ar[j + 1] = (float) (p.getY() * scale);
+            c++;
         }
-        ar[ar.length - 2] = (float) (cuboid2d.getCenter().getX() * scale);
-        ar[ar.length - 1] = (float) (cuboid2d.getCenter().getY() * scale);
+        c *= 2;
+        ar[c] = (float) (cuboid2d.getCenter().getX() * scale);
+        ar[c + 1] = (float) (cuboid2d.getCenter().getY() * scale);
         return new MatOfPoint2f(new MatOfFloat(ar).reshape(2, rows));
     }
 
     /**
-     * Points are gathered in strict order defined in {@link Cuboid2D}. Total number of points
-     * returned is 9 where center point is the last one.
+     * Points are gathered in strict order defined in {@link Cuboid3D}. Only non null points are
+     * copied. Center point is copied the last one.
      */
     public MatOfPoint3f copyToMatOfPoint3f(Cuboid3D cuboid3d) {
         return copyToMatOfPoint3f(cuboid3d, 1);
@@ -93,19 +92,21 @@ public class DjlOpenCvConverters {
      * @see #copyToMatOfPoint3f(Cuboid3D)
      */
     public MatOfPoint3f copyToMatOfPoint3f(Cuboid3D cuboid3d, double scale) {
-        var rows = cuboid3d.getVertices().size() + 1;
+        var rows = cuboid3d.getAvailableVertexCount() + 1;
         var ar = new float[3 * rows];
-        var vertices = cuboid3d.getVertices();
-        for (int i = 0; i < vertices.size(); i++) {
-            var p = vertices.get(i);
-            var j = i * 3;
+        int c = 0;
+        for (var p : cuboid3d.getVertices()) {
+            if (p == null) continue;
+            var j = c * 3;
             ar[j] = (float) p.getX();
             ar[j + 1] = (float) p.getY();
             ar[j + 2] = (float) p.getZ();
+            c++;
         }
-        ar[ar.length - 3] = (float) (cuboid3d.getCenter().getX() * scale);
-        ar[ar.length - 2] = (float) (cuboid3d.getCenter().getY() * scale);
-        ar[ar.length - 1] = (float) (cuboid3d.getCenter().getZ() * scale);
+        c *= 3;
+        ar[c] = (float) (cuboid3d.getCenter().getX() * scale);
+        ar[c + 1] = (float) (cuboid3d.getCenter().getY() * scale);
+        ar[c + 2] = (float) (cuboid3d.getCenter().getZ() * scale);
         return new MatOfPoint3f(new MatOfFloat(ar).reshape(3, rows));
     }
 

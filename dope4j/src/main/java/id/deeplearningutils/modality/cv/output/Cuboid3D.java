@@ -19,8 +19,10 @@ package id.deeplearningutils.modality.cv.output;
 
 import id.xfunction.Preconditions;
 import id.xfunction.XJsonStringBuilder;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * Describes <a href="https://en.wikipedia.org/wiki/Cuboid">cuboid</a> in 3D.
@@ -28,25 +30,28 @@ import java.util.Objects;
  * <p>It differs from Bounding Box in 2D with number of vertices. Cuboid has 8 vertices instead of
  * 4.
  *
+ * <p>Cuboid may have some of the vertices missing. In this case values of such vertices is null.
+ *
  * <p>Vertex naming is the following:
  *
  * <pre>{@code
  * y
  * ^
- * |    5--------6
+ * |    7--------8
  * |   /|       /|
  * |  / |      / |
- * | 1--|-----2  |
- * | |  8---- |--7
+ * | 3--|-----4  |
+ * | |  6---- |--5
  * | | /      | /
  * | |/       |/
- * | 4--------3
+ * | 2--------1
  * |-----------------> x
  * }</pre>
  *
  * @author lambdaprime intid@protonmail.com
  */
 public class Cuboid3D {
+    public static final int VERTEX_COUNT = 8;
     private List<Point3D> vertices;
     private Point3D center;
     private Point3D v1;
@@ -57,6 +62,8 @@ public class Cuboid3D {
     private Point3D v6;
     private Point3D v7;
     private Point3D v8;
+    private int availableVertexCount;
+    private int missingVertexCount;
 
     public Cuboid3D(
             Point3D center,
@@ -82,28 +89,23 @@ public class Cuboid3D {
         this.v6 = vertices.get(5);
         this.v7 = vertices.get(6);
         this.v8 = vertices.get(7);
-        this.vertices = List.copyOf(vertices);
+        this.vertices = Collections.unmodifiableList(vertices);
+        availableVertexCount =
+                VERTEX_COUNT - (int) vertices.stream().filter(Predicate.isEqual(null)).count();
+        missingVertexCount = VERTEX_COUNT - availableVertexCount;
     }
 
     public Cuboid3D(Point3D center, double width, double height, double length) {
         this(
                 center,
                 new Point3D(
-                        center.getX() - width / 2,
-                        center.getY() + height / 2,
-                        center.getZ() - length / 2),
-                new Point3D(
-                        center.getX() + width / 2,
-                        center.getY() + height / 2,
-                        center.getZ() - length / 2),
-                new Point3D(
                         center.getX() + width / 2,
                         center.getY() - height / 2,
-                        center.getZ() - length / 2),
+                        center.getZ() + length / 2),
                 new Point3D(
                         center.getX() - width / 2,
                         center.getY() - height / 2,
-                        center.getZ() - length / 2),
+                        center.getZ() + length / 2),
                 new Point3D(
                         center.getX() - width / 2,
                         center.getY() + height / 2,
@@ -115,11 +117,19 @@ public class Cuboid3D {
                 new Point3D(
                         center.getX() + width / 2,
                         center.getY() - height / 2,
-                        center.getZ() + length / 2),
+                        center.getZ() - length / 2),
                 new Point3D(
                         center.getX() - width / 2,
                         center.getY() - height / 2,
-                        center.getZ() + length / 2));
+                        center.getZ() - length / 2),
+                new Point3D(
+                        center.getX() - width / 2,
+                        center.getY() + height / 2,
+                        center.getZ() - length / 2),
+                new Point3D(
+                        center.getX() + width / 2,
+                        center.getY() + height / 2,
+                        center.getZ() - length / 2));
     }
 
     public List<Point3D> vertices() {
@@ -164,6 +174,14 @@ public class Cuboid3D {
 
     public Point3D v8() {
         return v8;
+    }
+
+    public int getAvailableVertexCount() {
+        return availableVertexCount;
+    }
+
+    public int getMissingVertexCount() {
+        return missingVertexCount;
     }
 
     @Override

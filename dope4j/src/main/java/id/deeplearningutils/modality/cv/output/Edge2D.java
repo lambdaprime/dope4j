@@ -32,7 +32,7 @@ public class Edge2D {
     private Point2D b;
 
     public Edge2D(Point2D a, Point2D b) {
-        boolean swap = Point2D.COMPARATOR.compare(a, b) > 0;
+        boolean swap = a != null && b != null && Point2D.COMPARATOR.compare(a, b) > 0;
         this.a = swap ? b : a;
         this.b = swap ? a : b;
     }

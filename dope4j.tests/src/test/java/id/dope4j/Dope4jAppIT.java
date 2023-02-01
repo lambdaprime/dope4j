@@ -42,7 +42,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class Dope4jAppIT {
 
-    private static final double POSE_DELTA = 0.00001;
+    private static final double POSE_DELTA = 0.0999;
     private static final Path imagePath = Paths.get("testset");
     private static final List<JsonNode> dopeResults = new ArrayList<>();
     private static final List<JsonNode> dope4jResults = new ArrayList<>();
@@ -64,7 +64,8 @@ public class Dope4jAppIT {
                                     "-objectSize=4.947199821472168,2.9923000335693359,8.3498001098632812",
                                     "-cache=true",
                                     "-cacheFolder=_cache",
-                                    "-cameraInfo=../config/camera_info.yaml"
+                                    "-cameraInfo=../config/camera_info.yaml",
+                                    "-debug=true"
                                 }),
                         new PrintStream(out))
                 .run();

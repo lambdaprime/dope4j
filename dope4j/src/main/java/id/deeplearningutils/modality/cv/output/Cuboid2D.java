@@ -20,8 +20,11 @@ package id.deeplearningutils.modality.cv.output;
 import ai.djl.modality.cv.output.Point;
 import id.xfunction.Preconditions;
 import id.xfunction.XJsonStringBuilder;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * Describes <a href="https://en.wikipedia.org/wiki/Cuboid">cuboid</a> in 2D.
@@ -29,25 +32,29 @@ import java.util.Objects;
  * <p>It differs from Bounding Box in 2D with number of vertices. Cuboid has 8 vertices instead of
  * 4.
  *
+ * <p>Cuboid may have some of the vertices missing. In this case values of such vertices is null.
+ *
  * <p>Vertex naming is the following:
  *
  * <pre>{@code
  * y
  * ^
- * |    5--------6
+ * |    7--------8
  * |   /|       /|
  * |  / |      / |
- * | 1--|-----2  |
- * | |  8---- |--7
+ * | 3--|-----4  |
+ * | |  6---- |--5
  * | | /      | /
  * | |/       |/
- * | 4--------3
+ * | 2--------1
  * |-----------------> x
  * }</pre>
  *
  * @author lambdaprime intid@protonmail.com
  */
 public class Cuboid2D {
+    public static final int VERTEX_COUNT = 8;
+
     private List<Point2D> vertices;
     private Point2D center;
     private Point2D v1;
@@ -59,6 +66,8 @@ public class Cuboid2D {
     private Point2D v7;
     private Point2D v8;
     private List<Edge2D> edges;
+    private int availableVertexCount;
+    private int missingVertexCount;
 
     public Cuboid2D(
             Point2D center,
@@ -70,11 +79,11 @@ public class Cuboid2D {
             Point2D v6,
             Point2D v7,
             Point2D v8) {
-        this(center, List.of(v1, v2, v3, v4, v5, v6, v7, v8));
+        this(center, Arrays.asList(v1, v2, v3, v4, v5, v6, v7, v8));
     }
 
     public Cuboid2D(Point2D center, List<Point2D> vertices) {
-        Preconditions.equals(8, vertices.size(), "Cuboid requires 8 vertices");
+        Preconditions.equals(VERTEX_COUNT, vertices.size(), "Cuboid requires 8 vertices");
         this.center = center;
         this.v1 = vertices.get(0);
         this.v2 = vertices.get(1);
@@ -84,7 +93,7 @@ public class Cuboid2D {
         this.v6 = vertices.get(5);
         this.v7 = vertices.get(6);
         this.v8 = vertices.get(7);
-        this.vertices = List.copyOf(vertices);
+        this.vertices = Collections.unmodifiableList(vertices);
         this.edges =
                 List.of(
                         new Edge2D(v1, v2),
@@ -99,6 +108,9 @@ public class Cuboid2D {
                         new Edge2D(v2, v6),
                         new Edge2D(v3, v7),
                         new Edge2D(v4, v8));
+        availableVertexCount =
+                VERTEX_COUNT - (int) vertices.stream().filter(Predicate.isEqual(null)).count();
+        missingVertexCount = VERTEX_COUNT - availableVertexCount;
     }
 
     public List<Edge2D> getEdges() {
@@ -143,6 +155,14 @@ public class Cuboid2D {
 
     public Point v8() {
         return v8;
+    }
+
+    public int getAvailableVertexCount() {
+        return availableVertexCount;
+    }
+
+    public int getMissingVertexCount() {
+        return missingVertexCount;
     }
 
     @Override

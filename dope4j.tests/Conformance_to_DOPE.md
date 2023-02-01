@@ -26,5 +26,7 @@ tensor([[[ 4.5880e-05,  3.6811e-04,  3.3271e-04,  ...,  6.4814e-04,
 
 ```
 
-As we can see 1.135(6)5475e-04 != 1.135(7)e-04. It means that it is expected to have a small delta between `dope4j` and DOPE results.
+As we can see 1.135(6)5475e-04 != 1.135(7)e-04. This 0.0001 delta during pose calculation can increase up to 0.1. Such increase happens mostly when not all vertices were detected and decoders have to fall back to [SOLVEPNP_P3P](https://docs.opencv.org/3.4/d9/d0c/group__calib3d.html#ga549c2075fac14829ff4a58bc931c033d) method.
+
+To summarize: it is expected to have a some delta between `dope4j` and DOPE results.
 

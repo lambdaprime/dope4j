@@ -23,14 +23,23 @@ package id.dope4j;
 public interface DopeConstants {
     int IMAGE_WIDTH = 640;
     int IMAGE_HEIGHT = 480;
+
+    /**
+     * @see OutputTensor#beliefMaps
+     */
     int BELIEF_MAPS_COUNT = 9;
+
+    /**
+     * @see OutputTensor#affinities
+     */
     long AFFINITIES_COUNT = 16;
+
     long TENSOR_LENGTH = BELIEF_MAPS_COUNT + AFFINITIES_COUNT;
     int TENSOR_ROWS = 60;
     int TENSOR_COLS = 80;
     int[] BELIEF_SHAPE = {TENSOR_ROWS, TENSOR_COLS};
     double GAUSSIAN_SIGMA = 3.0;
-    double DEFAULT_PEAK_THRESHOLD = 0.01;
+    double DEFAULT_PEAK_THRESHOLD = 0.1;
     float SCALE_FACTOR = 8;
     int PEAKS_WEIGHTED_AVERAGE_WINDOW = 5;
     float OFFSET_DUE_TO_UPSAMPLING = 0.4395F;

@@ -30,7 +30,6 @@ import ai.djl.ndarray.types.Shape;
 import id.deeplearningutils.modality.cv.output.Cuboid2D;
 import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.deeplearningutils.modality.cv.output.Point2D;
-import id.deeplearningutils.modality.cv.output.Pose;
 import id.dope4j.DopeConstants;
 import id.dope4j.exceptions.NoKeypointsFoundException;
 import id.dope4j.impl.DjlOpenCvConverters;
@@ -50,13 +49,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfDouble;
 import org.opencv.core.MatOfFloat;
-import org.opencv.core.MatOfPoint2f;
-import org.opencv.core.MatOfPoint3f;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -99,18 +95,21 @@ public class DopeDecoderUtils {
     }
 
     /**
-     * Keypoints are object vertices + center points. They all part of Belief Maps. There is one
-     * Belief Map per vertex. Center point beliefs are on the last Belief Map.
+     * Keypoints are cuboid vertices surrounding the object + cuboid center point. They all part of
+     * Belief Maps. There is one Belief Map per each cuboid vertex (total 8). Center point beliefs
+     * are on the last Belief Map.
      *
-     * <p>{@link DopeConstants#PEAK_THRESHOLD} allows to configure what predictions are ignored and
-     * what not.
+     * <p>{@link DopeConstants#PEAK_THRESHOLD} allows to configure which predictions are ignored and
+     * which not.
      *
      * @throws NoKeypointsFoundException
      */
     public OutputKeypoints findKeypoints(OutputTensor output, double threshold)
             throws NoKeypointsFoundException {
         var beliefMaps = output.beliefMaps();
-        List<List<Point2D>> allPeaks = new ArrayList<>();
+        List<List<Point>> allPeaks = new ArrayList<>();
+        List<List<Point2D>> keypoints = new ArrayList<>();
+        int keypointsCount = 0;
         for (int i = 0; i < BELIEF_MAPS_COUNT; i++) {
             LOGGER.debug("Belief map shape: {}", beliefMaps.get(i).getShape());
             var belief = beliefMaps.get(i).toFloatArray();
@@ -127,17 +126,25 @@ public class DopeDecoderUtils {
                     GAUSSIAN_SIGMA,
                     Core.BORDER_REFLECT);
             if (i == 0) utils.debugMat("Blurred belief map {}", blurred, new Rect(0, 0, 3, 3));
-            var peaks = utils.findPeaks(blurred, threshold);
-            if (peaks.isEmpty())
-                throw new NoKeypointsFoundException(
-                        String.format("Belief map number %s, peak threshold %s", i, threshold));
+            var beliefAcc = Float2DAccessor.fromArray(belief, BELIEF_SHAPE);
+            var peaks =
+                    utils.findPeaks(blurred, Double.MIN_VALUE).stream()
+                            .filter(
+                                    p ->
+                                            beliefAcc.get(p.y, p.x)
+                                                    > DopeConstants.DEFAULT_PEAK_THRESHOLD)
+                            .toList();
+
+            allPeaks.add(peaks);
+
             // recalculating peak coordinates with respect to weighted average
             peaks =
                     openCvKit.applyWeightedAverage(
                             Float2DAccessor.fromArray(belief, BELIEF_SHAPE),
                             DopeConstants.PEAKS_WEIGHTED_AVERAGE_WINDOW,
                             peaks);
-            allPeaks.add(
+            keypointsCount += peaks.size();
+            keypoints.add(
                     peaks.stream()
                             .map(
                                     p ->
@@ -146,26 +153,38 @@ public class DopeDecoderUtils {
                                                     p.y + DopeConstants.OFFSET_DUE_TO_UPSAMPLING))
                             .toList());
         }
-        LOGGER.debug("Detected keypoints: {}", allPeaks);
 
-        var verticesBeliefs = allPeaks.subList(0, DopeConstants.BELIEF_MAPS_COUNT - 1);
+        if (keypointsCount == 0)
+            throw new NoKeypointsFoundException(String.format("Peaks threshold %s", threshold));
+
+        LOGGER.debug("Detected peaks: {}", allPeaks);
+        LOGGER.debug("Detected keypoints: {}", keypoints);
+
+        var verticesBeliefs = keypoints.subList(0, DopeConstants.BELIEF_MAPS_COUNT - 1);
         LOGGER.debug("Detected vertices: {}", verticesBeliefs);
-        var centerPointBeliefs = allPeaks.get(DopeConstants.BELIEF_MAPS_COUNT - 1);
+        var centerPointBeliefs = keypoints.get(DopeConstants.BELIEF_MAPS_COUNT - 1);
         LOGGER.debug("Detected center points: {}", centerPointBeliefs);
         return new OutputKeypoints(verticesBeliefs, centerPointBeliefs);
     }
 
-    /** Returns map of pairs: center point - [list of matched vertices] */
+    /**
+     * Returns map of pairs: [center point: vertices], where vertices are all vertices of the cuboid
+     * which matches to this center point. For those cuboid vertices which was not found because
+     * they does not exist in verticesLists we return null. This guarantees that for each center
+     * point we always will return list of 8 vertices but some vertices in this list may be null.
+     */
     private Map<Point2D, List<Point2D>> matchCenterPointsWithVertices(
             List<Point2D> centerPoints,
-            List<List<Point2D>> vertices,
+            List<List<Point2D>> verticesLists,
             AffinityFields affinityFields) {
         Map<Point2D, List<Point2D>> objectsMap =
                 centerPoints.stream().collect(Collectors.toMap(i -> i, i -> new ArrayList<>()));
         for (int beliefMapId = 0;
                 beliefMapId < DopeConstants.BELIEF_MAPS_COUNT - 1;
                 beliefMapId++) {
-            for (var vertex : vertices.get(beliefMapId)) {
+            var vertexId = beliefMapId;
+            var vertices = verticesLists.get(beliefMapId);
+            for (var vertex : vertices) {
                 double minDistance = Integer.MAX_VALUE;
                 Point2D candidateCenterPoint = null;
                 for (var center : centerPoints) {
@@ -182,8 +201,14 @@ public class DopeDecoderUtils {
                         minDistance = distance;
                     }
                 }
-                objectsMap.get(candidateCenterPoint).add(vertex);
+                if (candidateCenterPoint != null) objectsMap.get(candidateCenterPoint).add(vertex);
             }
+            objectsMap.forEach(
+                    (c, l) -> {
+                        // For those center points which does not have matched vertex with current
+                        // id we add null
+                        if (l.size() < vertexId + 1) l.add(null);
+                    });
         }
         return objectsMap;
     }
@@ -192,49 +217,23 @@ public class DopeDecoderUtils {
         var objectsMap =
                 matchCenterPointsWithVertices(
                         keypoints.centerPoints(), keypoints.vertices(), affinityFields);
-        return new OutputObjects2D(
-                objectsMap.entrySet().stream()
-                        .map(e -> new Cuboid2D(e.getKey(), e.getValue()))
-                        .toList());
+        var objects =
+                new OutputObjects2D(
+                        objectsMap.entrySet().stream()
+                                .map(e -> newCuboid2D(e.getKey(), e.getValue()))
+                                .toList());
+        LOGGER.debug("Detected objects: {}", objects);
+        return objects;
+    }
+
+    private Cuboid2D newCuboid2D(Point2D center, List<Point2D> vertices) {
+        return new Cuboid2D(center, vertices);
     }
 
     public OutputPoses findPoses(
             OutputObjects2D objects, Cuboid3D cuboid3d, CameraInfo cameraInfo) {
-        var points3d = converters.copyToMatOfPoint3f(cuboid3d);
-        utils.debugMat("points3d", points3d);
-        var cameraMat = cameraInfo.cameraMatrix().toMat64F();
-        utils.debugMat("cameraMat", cameraMat);
-        var distortionMat = cameraInfo.distortionCoefficients().toMatOfDouble();
-        utils.debugShape("distortionMat", distortionMat);
-        var objectPoints2d =
-                objects.cuboids2d().stream()
-                        .map(
-                                points2d ->
-                                        converters.copyToMatOfPoint2f(
-                                                points2d, DopeConstants.SCALE_FACTOR))
-                        .toList();
-        var poses =
-                objectPoints2d.stream()
-                        .map(points2d -> findPoses(points2d, points3d, cameraMat, distortionMat))
-                        .toList();
-        var objects2d = objectPoints2d.stream().map(converters::copyToCuboid2D).toList();
-        return new OutputPoses(cuboid3d, objects2d, poses);
-    }
-
-    private Pose findPoses(
-            MatOfPoint2f points2d,
-            MatOfPoint3f points3d,
-            Mat cameraMat,
-            MatOfDouble distortionMat) {
-        var rvec = new Mat();
-        var tvec = new Mat();
-        Calib3d.solvePnP(points3d, points2d, cameraMat, distortionMat, rvec, tvec);
-        utils.debugMat("rvec", rvec);
-        utils.debugMat("tvec", tvec);
-        Calib3d.projectPoints(points3d, rvec, tvec, cameraMat, distortionMat, points2d);
-        var position = converters.copyToPoint(tvec);
-        if (position.getZ() < 0) position = position.scaled(-1);
-        var orientation = matConverters.copyToVector3d(rvec);
-        return new Pose(position, orientation);
+        var calc = new CuboidPoseCalculator(cuboid3d, cameraInfo, DopeConstants.SCALE_FACTOR);
+        objects.cuboids2d().forEach(calc::calculateAndAddPose);
+        return new OutputPoses(cuboid3d, calc.getObjects(), calc.getPoses());
     }
 }
