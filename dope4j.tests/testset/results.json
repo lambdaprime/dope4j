@@ -1,4 +1,10 @@
 {
+    "imagePath": "0002_rgb_resized.jpg",
+    "detectedPoses": {
+        "objects2d": [],
+        "poses": []
+    }
+}{
     "imagePath": "0000_rgb_resized.jpg",
     "detectedPoses": {
         "objects2d": [],

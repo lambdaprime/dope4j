@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * Describes <a href="https://en.wikipedia.org/wiki/Cuboid">cuboid</a> in 2D.
@@ -95,19 +96,21 @@ public class Cuboid2D {
         this.v8 = vertices.get(7);
         this.vertices = Collections.unmodifiableList(vertices);
         this.edges =
-                List.of(
-                        new Edge2D(v1, v2),
-                        new Edge2D(v2, v3),
-                        new Edge2D(v3, v4),
-                        new Edge2D(v4, v1),
-                        new Edge2D(v5, v6),
-                        new Edge2D(v6, v7),
-                        new Edge2D(v7, v8),
-                        new Edge2D(v8, v5),
-                        new Edge2D(v1, v5),
-                        new Edge2D(v2, v6),
-                        new Edge2D(v3, v7),
-                        new Edge2D(v4, v8));
+                Stream.of(
+                                new Edge2D(v1, v2),
+                                new Edge2D(v2, v3),
+                                new Edge2D(v3, v4),
+                                new Edge2D(v4, v1),
+                                new Edge2D(v5, v6),
+                                new Edge2D(v6, v7),
+                                new Edge2D(v7, v8),
+                                new Edge2D(v8, v5),
+                                new Edge2D(v1, v5),
+                                new Edge2D(v2, v6),
+                                new Edge2D(v3, v7),
+                                new Edge2D(v4, v8))
+                        .filter(e -> e.getPointA() != null && e.getPointB() != null)
+                        .toList();
         availableVertexCount =
                 VERTEX_COUNT - (int) vertices.stream().filter(Predicate.isEqual(null)).count();
         missingVertexCount = VERTEX_COUNT - availableVertexCount;

@@ -17,6 +17,8 @@
  */
 package id.dope4j;
 
+import id.dope4j.io.OutputTensor;
+
 /**
  * @author lambdaprime intid@protonmail.com
  */
@@ -39,7 +41,23 @@ public interface DopeConstants {
     int TENSOR_COLS = 80;
     int[] BELIEF_SHAPE = {TENSOR_ROWS, TENSOR_COLS};
     double GAUSSIAN_SIGMA = 3.0;
+
+    /**
+     * Minimum confidence value from {@link OutputTensor#beliefMaps()} for point to be considered as
+     * a keypoint.
+     *
+     * <p>Analog to config_detect.thresh_points from original DOPE decoder.
+     */
     double DEFAULT_PEAK_THRESHOLD = 0.1;
+
+    /**
+     * Minimum confidence value from blurred {@link OutputTensor#beliefMaps()} for point to be
+     * considered as a keypoint.
+     *
+     * <p>Analog to config_detect.thresh_map from original DOPE decoder.
+     */
+    double DEFAULT_BLURRED_PEAK_THRESHOLD = 0.01;
+
     float SCALE_FACTOR = 8;
     int PEAKS_WEIGHTED_AVERAGE_WINDOW = 5;
     float OFFSET_DUE_TO_UPSAMPLING = 0.4395F;

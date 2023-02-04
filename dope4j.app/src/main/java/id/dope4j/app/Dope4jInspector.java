@@ -103,10 +103,11 @@ class Dope4jInspector implements Inspector {
     @Override
     public void inspectOjects2D(OutputObjects2D objects) {
         if (showMatchedVertices) {
-            for (var bb : objects.cuboids2d()) {
+            for (var cuboid : objects.cuboids2d()) {
                 var centerPoint =
-                        converters.copyToPoint(bb.getCenter(), DopeConstants.SCALE_FACTOR);
-                bb.getVertices().stream()
+                        converters.copyToPoint(cuboid.getCenter(), DopeConstants.SCALE_FACTOR);
+                cuboid.getVertices().stream()
+                        .filter(v -> v != null)
                         .map(v -> converters.copyToPoint(v, DopeConstants.SCALE_FACTOR))
                         .forEach(v -> Imgproc.line(mat, centerPoint, v, RgbColors.GREEN));
             }

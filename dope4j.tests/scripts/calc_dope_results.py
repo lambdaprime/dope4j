@@ -35,19 +35,19 @@ config_detect.thresh_map = 0.01
 config_detect.sigma = 3
 config_detect.thresh_points = 0.1
 
-print("Loading ChocolatePudding model")
-model = ModelData("ChocolatePudding", "/tmp/models/ChocolatePudding.pth")
-model.load_net_model()
-
 camera_matrix = np.matrix([641.5, 0, 320.0, 0, 641.5, 240.0, 0, 0, 1], dtype='float64').reshape(3, 3)
 if DEBUG is True:
     print("camera_matrix")
     print(camera_matrix)
 
-dist_coeffs = np.zeros((4, 1))
+dist_coeffs = np.zeros((5, 1))
 if DEBUG is True:
     print("dist_coeffs")
     print(dist_coeffs)
+
+print("Loading ChocolatePudding model")
+model = ModelData("ChocolatePudding", "/tmp/models/ChocolatePudding.pth")
+model.load_net_model()
 
 pnp_solver = \
                 CuboidPNPSolver(

@@ -107,14 +107,21 @@ public class CuboidPoseCalculator {
     }
 
     private boolean findPose(MatOfPoint2f points2d, MatOfPoint3f points3d) {
-        Preconditions.equals(points2d.rows(), points3d.rows(), "Vertex count mismatch");
         var vertexCount = points2d.rows();
         var rvec = new Mat();
         var tvec = new Mat();
         LOGGER.debug("Number of available vertices: {}", points2d.rows());
         if (vertexCount < 4) return false;
-        var method = points2d.rows() == 4 ? Calib3d.SOLVEPNP_P3P : Calib3d.SOLVEPNP_ITERATIVE;
+        var method = Calib3d.SOLVEPNP_ITERATIVE;
+        if (points2d.rows() < 6) {
+            if (points2d.rows() != 4) {
+                points2d = new MatOfPoint2f(points2d.rowRange(0, 4));
+                points3d = new MatOfPoint3f(points3d.rowRange(0, 4));
+            }
+            method = Calib3d.SOLVEPNP_P3P;
+        }
         if (LOGGER.isDebugEnabled()) LOGGER.debug("Using PnP method: {}", PNP_METHODS.get(method));
+        Preconditions.equals(points2d.rows(), points3d.rows(), "Vertex count mismatch");
         Calib3d.solvePnP(points3d, points2d, cameraMat, distortionMat, rvec, tvec, false, method);
         utils.debugMat("rvec", rvec);
         utils.debugMat("tvec", tvec);

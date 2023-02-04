@@ -120,7 +120,7 @@ public class DopeDecoderUtils {
             if (i == 0) utils.debugMat("Blurred belief map {}", blurred, new Rect(0, 0, 3, 3));
             var beliefAcc = Float2DAccessor.fromArray(belief, BELIEF_SHAPE);
             var peaks =
-                    utils.findPeaks(blurred, Double.MIN_VALUE).stream()
+                    utils.findPeaks(blurred, DopeConstants.DEFAULT_BLURRED_PEAK_THRESHOLD).stream()
                             .filter(
                                     p ->
                                             beliefAcc.get(p.y, p.x)

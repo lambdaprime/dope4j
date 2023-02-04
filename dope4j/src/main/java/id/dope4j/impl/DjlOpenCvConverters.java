@@ -24,7 +24,9 @@ import id.deeplearningutils.modality.cv.output.Point2D;
 import id.deeplearningutils.modality.cv.output.Point3D;
 import id.xfunction.Preconditions;
 import java.util.ArrayList;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.MatOfPoint3f;
@@ -55,6 +57,8 @@ public class DjlOpenCvConverters {
     /**
      * Points are gathered in strict order defined in {@link Cuboid2D}. Only non null points are
      * copied. Center point is copied the last one.
+     *
+     * <p>The output Mat is of type {@link CvType#CV_32FC2}
      */
     public MatOfPoint2f copyToMatOfPoint2f(Cuboid2D cuboid2d) {
         return copyToMatOfPoint2f(cuboid2d, 1);
@@ -81,6 +85,29 @@ public class DjlOpenCvConverters {
     }
 
     /**
+     * Points are gathered in strict order defined in {@link Cuboid2D}. Only non null points are
+     * copied. Center point is copied the last one.
+     *
+     * <p>The output Mat is of type {@link CvType#CV_64FC2}
+     */
+    public Mat copyToMat(Cuboid2D cuboid2d, float scale) {
+        var rows = cuboid2d.getAvailableVertexCount() + 1;
+        var ar = new double[2 * rows];
+        int c = 0;
+        for (var p : cuboid2d.getVertices()) {
+            if (p == null) continue;
+            var j = c * 2;
+            ar[j] = p.getX() * scale;
+            ar[j + 1] = p.getY() * scale;
+            c++;
+        }
+        c *= 2;
+        ar[c] = cuboid2d.getCenter().getX() * scale;
+        ar[c + 1] = cuboid2d.getCenter().getY() * scale;
+        return new MatOfDouble(ar).reshape(2, rows);
+    }
+
+    /**
      * Points are gathered in strict order defined in {@link Cuboid3D}. Only non null points are
      * copied. Center point is copied the last one.
      */
@@ -98,9 +125,9 @@ public class DjlOpenCvConverters {
         for (var p : cuboid3d.getVertices()) {
             if (p == null) continue;
             var j = c * 3;
-            ar[j] = (float) p.getX();
-            ar[j + 1] = (float) p.getY();
-            ar[j + 2] = (float) p.getZ();
+            ar[j] = (float) (p.getX() * scale);
+            ar[j + 1] = (float) (p.getY() * scale);
+            ar[j + 2] = (float) (p.getZ() * scale);
             c++;
         }
         c *= 3;
@@ -108,6 +135,31 @@ public class DjlOpenCvConverters {
         ar[c + 1] = (float) (cuboid3d.getCenter().getY() * scale);
         ar[c + 2] = (float) (cuboid3d.getCenter().getZ() * scale);
         return new MatOfPoint3f(new MatOfFloat(ar).reshape(3, rows));
+    }
+
+    /**
+     * Points are gathered in strict order defined in {@link Cuboid3D}. Only non null points are
+     * copied. Center point is copied the last one.
+     *
+     * <p>The output Mat is of type {@link CvType#CV_64FC2}
+     */
+    public Mat copyToMat(Cuboid3D cuboid3d, float scale) {
+        var rows = cuboid3d.getAvailableVertexCount() + 1;
+        var ar = new double[3 * rows];
+        int c = 0;
+        for (var p : cuboid3d.getVertices()) {
+            if (p == null) continue;
+            var j = c * 3;
+            ar[j] = p.getX();
+            ar[j + 1] = p.getY();
+            ar[j + 2] = p.getZ();
+            c++;
+        }
+        c *= 3;
+        ar[c] = cuboid3d.getCenter().getX() * scale;
+        ar[c + 1] = cuboid3d.getCenter().getY() * scale;
+        ar[c + 2] = cuboid3d.getCenter().getZ() * scale;
+        return new MatOfDouble(ar).reshape(3, rows);
     }
 
     /** Input vertices should be ordered as defined in {@link Cuboid2D} */
