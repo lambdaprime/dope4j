@@ -57,10 +57,10 @@ pnp_solver = \
 pnp_solver.set_camera_intrinsic_matrix(camera_matrix)
 pnp_solver.set_dist_coeffs(dist_coeffs)
 
-testsetDir = "/tmp/dope4j/testset"
+outFile = open('/tmp/dope4j/testset/results.json', 'w')
 
-outFile = open(testsetDir + '/results.json', 'w')
-for filePath in os.listdir(testsetDir):
+testsetDir = "/tmp/dope4j/testset"
+for filePath in sorted(os.listdir(testsetDir)):
     if not filePath.endswith(".jpg"):
         continue
     img = cv2.imread(testsetDir + "/" + filePath)
@@ -82,7 +82,8 @@ for filePath in os.listdir(testsetDir):
     poses = []
     for result in results:
         objects2d.append(np.array(result['projected_points']).tolist())
-        poses.append({
+        if result['location'] is not None:
+            poses.append({
                 "position": {
                     "x": fmt(result['location'][0]),
                     "y": fmt(result['location'][1]),
