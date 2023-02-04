@@ -1,17 +1,17 @@
 {
-    "imagePath": "0000_rgb_resized.jpg",
+    "imagePath": "0000_rgb_resized.jpg.png",
     "detectedPoses": {
         "objects2d": [],
         "poses": []
     }
 }{
-    "imagePath": "0002_rgb_resized.jpg",
+    "imagePath": "0002_rgb_resized.jpg.png",
     "detectedPoses": {
         "objects2d": [],
         "poses": []
     }
 }{
-    "imagePath": "scene_0001_0003_rgb_resized.jpg",
+    "imagePath": "scene_0001_0003_rgb_resized.jpg.png",
     "detectedPoses": {
         "objects2d": [
             [
@@ -72,13 +72,13 @@
         ]
     }
 }{
-    "imagePath": "scene_0003_0006_rgb_cropped.jpg",
+    "imagePath": "scene_0003_0006_rgb_cropped.jpg.png",
     "detectedPoses": {
         "objects2d": [],
         "poses": []
     }
 }{
-    "imagePath": "scene_0003_0006_rgb_resized.jpg",
+    "imagePath": "scene_0003_0006_rgb_resized.jpg.png",
     "detectedPoses": {
         "objects2d": [
             [
@@ -139,7 +139,7 @@
         ]
     }
 }{
-    "imagePath": "scene_0022_0000_rgb_resized.jpg",
+    "imagePath": "scene_0022_0000_rgb_resized.jpg.png",
     "detectedPoses": {
         "objects2d": [
             [
@@ -253,7 +253,7 @@
         ]
     }
 }{
-    "imagePath": "scene_0026_0001_rgb_resized.jpg",
+    "imagePath": "scene_0026_0001_rgb_resized.jpg.png",
     "detectedPoses": {
         "objects2d": [
             [
@@ -314,13 +314,13 @@
         ]
     }
 }{
-    "imagePath": "scene_0031_0000_rgb_resized.jpg",
+    "imagePath": "scene_0031_0000_rgb_resized.jpg.png",
     "detectedPoses": {
         "objects2d": [],
         "poses": []
     }
 }{
-    "imagePath": "scene_0032_0001_rgb_resized.jpg",
+    "imagePath": "scene_0032_0001_rgb_resized.jpg.png",
     "detectedPoses": {
         "objects2d": [
             [

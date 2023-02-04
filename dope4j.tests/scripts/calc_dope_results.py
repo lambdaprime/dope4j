@@ -59,9 +59,11 @@ pnp_solver.set_dist_coeffs(dist_coeffs)
 
 outFile = open('/tmp/dope4j/testset/results.json', 'w')
 
-testsetDir = "/tmp/dope4j/testset"
+# use processed images which sent to the network directly
+testsetDir = "/tmp/dope4j/testset/_cache"
+
 for filePath in sorted(os.listdir(testsetDir)):
-    if not filePath.endswith(".jpg"):
+    if not filePath.endswith(".png"):
         continue
     img = cv2.imread(testsetDir + "/" + filePath)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

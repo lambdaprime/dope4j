@@ -113,12 +113,14 @@ public class Dope4jAppIT {
 
     /** Finds results for current test image */
     private JsonNode findJsonNode(List<JsonNode> jsonNodes, Path image) {
+        var imageFileName = image.getFileName().toString();
         Predicate<JsonNode> resultFinder =
                 n ->
                         n.findValuesAsText("imagePath").stream()
                                 .map(Paths::get)
                                 .map(Path::getFileName)
-                                .filter(Predicate.isEqual(image.getFileName()))
+                                .map(Path::toString)
+                                .filter(p -> p.startsWith(imageFileName))
                                 .findFirst()
                                 .isPresent();
         return StreamSupport.stream(jsonNodes.spliterator(), false)
