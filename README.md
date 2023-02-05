@@ -24,8 +24,10 @@ export LD_LIBRARY_PATH=<PATH_TO_TENSOR_RT/lib:<PATH_TO_CUDNN>/lib
 # Usage
 
 ```
-dope4j <options>
+dope4j -action=<runInference|showResults> <options>
 ```
+
+## runInference
 
 Required options:
 
@@ -64,6 +66,49 @@ Optional options:
 `-debug=<true|false>` - print debug information and log it to `dope4j-debug.log` inside system temporary folder. Default is "false".
 
 `-totalRunTime=<true|false>` - print total execution time when command finishes.
+
+## showResults
+
+Read inference results from JSON file and for each image show cuboids of all detected objects.
+
+Required options:
+
+`-resultsJson=<path>` - path to JSON file with inference results.
+
+Optional options:
+
+`-imagesRoot=<path>` - path which will be prepended to all image files which are read from results file. Default is path to current folder where command is executed.
+
+# Examples
+
+First make sure that all native libraries available globally in the system or provided separately as follows:
+
+```
+export LD_LIBRARY_PATH=<PATH_TO_TENSOR_RT/lib:<PATH_TO_CUDNN>/lib
+```
+
+Supported versions see in `Requirements` section.
+
+Run inference for all images inside `/tmp/dataset` using ChocolatePudding model and:
+- show all detected objects vertices and center points
+- save the results to `results.json`
+
+```
+dope4j \
+ -action=runInference \
+ -modelUrl=/tmp/models/ChocolatePudding.onnx \
+ -objectSize=4.947199821472168,2.9923000335693359,8.3498001098632812 \
+ -cameraInfo=/tmp/dope4j/config/camera_info.yaml \
+ -imagePath=/tmp/dataset \
+ -showVerticesBeliefs=true \
+ -showCenterPointBeliefs=true > /tmp/results.json
+```
+
+Show detected poses for images inside `/tmp/dataset` without running any inference but using results previously saved in `results.json`
+
+```
+dope4j -action=showResults -resultsJson=/tmp/results.json
+```
 
 # Contributors
 

@@ -50,7 +50,7 @@ public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
      *
      * @author lambdaprime intid@protonmail.com
      */
-    public static interface Inspector {
+    public static interface Inspector extends AutoCloseable {
         void inspectTensor(OutputTensor outputTensor);
 
         void inspectKeypoints(OutputKeypoints keypoints);
@@ -59,6 +59,7 @@ public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
 
         void inspectPoses(OutputPoses poses);
 
+        @Override
         void close();
 
         /**

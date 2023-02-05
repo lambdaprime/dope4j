@@ -106,7 +106,7 @@ for filePath in sorted(os.listdir(testsetDir)):
                 point2d(result['projected_points'][4]),
                 point2d(result['projected_points'][5]),
                 point2d(result['projected_points'][6]),
-                point2d(result['projected_points'][8])
+                point2d(result['projected_points'][7])
             ]
         })
         if result['location'] is not None:

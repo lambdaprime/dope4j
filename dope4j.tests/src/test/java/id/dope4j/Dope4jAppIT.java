@@ -17,26 +17,19 @@
  */
 package id.dope4j;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import id.deeplearningutils.modality.cv.output.Cuboid2D;
-import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.dope4j.app.DeepObjectPoseEstimationApp;
 import id.dope4j.app.Dope4jResult;
 import id.dope4j.io.OutputPoses;
-import id.dope4j.jackson.mixin.Cuboid2DJson;
-import id.dope4j.jackson.mixin.Cuboid3DJson;
+import id.dope4j.jackson.JsonUtils;
 import id.xfunction.cli.CommandOptions;
 import id.xfunction.nio.file.FilePredicates;
 import id.xfunctiontests.XAsserts;
 import java.io.ByteArrayOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
@@ -47,20 +40,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class Dope4jAppIT {
 
     private static final double POSE_DELTA = 0.0999;
+    private static final JsonUtils jsonUtils = new JsonUtils();
     private static final Path imagePath = Paths.get("testset");
-    private static final List<Dope4jResult> dopeResults = new ArrayList<>();
-    private static final List<Dope4jResult> dope4jResults = new ArrayList<>();
+    private static List<Dope4jResult> dopeResults;
+    private static List<Dope4jResult> dope4jResults;
 
     @BeforeAll
     public static void setupAll() throws Exception {
-        var reader =
-                new ObjectMapper()
-                        .registerModule(new Jdk8Module())
-                        .addMixIn(Cuboid2D.class, Cuboid2DJson.class)
-                        .addMixIn(Cuboid3D.class, Cuboid3DJson.class)
-                        .readerFor(Dope4jResult.class);
-        reader.<Dope4jResult>readValues(new FileReader("testset/results.json"))
-                .forEachRemaining(dopeResults::add);
+        dopeResults = jsonUtils.readDope4jResults(Paths.get("testset/results.json"));
         dopeResults.forEach(System.out::println);
         var out = new ByteArrayOutputStream();
         new DeepObjectPoseEstimationApp(
@@ -76,7 +63,7 @@ public class Dope4jAppIT {
                                 }),
                         new PrintStream(out))
                 .run();
-        reader.<Dope4jResult>readValues(out.toByteArray()).forEachRemaining(dope4jResults::add);
+        dope4jResults = jsonUtils.readDope4jResults(out.toByteArray());
         dope4jResults.forEach(System.out::println);
     }
 

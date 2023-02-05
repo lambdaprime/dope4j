@@ -40,7 +40,7 @@ public record InputImage(Image image, Optional<Path> path) {
     public InputImage(Path path) throws IOException {
         this(
                 OpenCVImageFactory.getInstance()
-                        .fromFile(path)
+                        .fromFile(path.toAbsolutePath())
                         .resize(DopeConstants.IMAGE_WIDTH, DopeConstants.IMAGE_HEIGHT, false),
                 path);
     }

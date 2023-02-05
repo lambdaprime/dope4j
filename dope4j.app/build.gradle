@@ -19,7 +19,8 @@ dependencies {
   addDependencies(this, ["implementation", "apiElements"], "2.14.1", [
     "com.fasterxml.jackson.core:jackson-databind",
     "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-    "com.fasterxml.jackson.module:jackson-module-parameter-names"
+    "com.fasterxml.jackson.module:jackson-module-parameter-names",
+    "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
   ]);
 }
 

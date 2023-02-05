@@ -19,11 +19,6 @@ package id.dope4j.app;
 
 import ai.djl.engine.Engine;
 import ai.djl.ndarray.NDArray;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.impl.RecordNamingStrategyPatchModule;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.deeplearningutils.modality.cv.output.Point3D;
 import id.dope4j.DeepObjectPoseEstimationService;
@@ -33,7 +28,7 @@ import id.dope4j.decoders.ObjectsDecoder.Inspector;
 import id.dope4j.impl.CacheFileMapper;
 import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputPoses;
-import id.matcv.camera.CameraInfo;
+import id.dope4j.jackson.JsonUtils;
 import id.xfunction.ResourceUtils;
 import id.xfunction.cli.ArgumentParsingException;
 import id.xfunction.cli.CommandOptions;
@@ -65,6 +60,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeepObjectPoseEstimationApp.class);
     private static final String CACHE_FOLDER_NAME = "_cache_dope4j";
+    private static final JsonUtils jsonUtils = new JsonUtils();
     private CommandOptions commandOptions;
     private ObjectsDecoder objectsDecoder;
     private Optional<CacheFileMapper> cacheFileMapper = Optional.empty();
@@ -88,6 +84,30 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
     }
 
     public void run() throws Exception {
+        switch (commandOptions.getRequiredOption("action")) {
+            case "runInference" -> runInference();
+            case "showResults" -> showResults();
+            default -> throw new ArgumentParsingException(
+                    "Unknown action: " + commandOptions.getRequiredOption("action"));
+        }
+    }
+
+    private void showResults() throws IOException {
+        var results =
+                jsonUtils.readDope4jResults(
+                        Paths.get(commandOptions.getRequiredOption("resultsJson")));
+        var imagesRoot =
+                commandOptions.getOption("imagesRoot").map(Paths::get).orElse(Paths.get(""));
+        commandOptions.addOption("showProjectedCuboids2D", true);
+        for (var result : results) {
+            try (var inspector =
+                    build(new InputImage(imagesRoot.resolve(result.imagePath().orElseThrow())))) {
+                inspector.inspectPoses(result.detectedPoses());
+            }
+        }
+    }
+
+    public void runInference() throws Exception {
         if (commandOptions.isOptionTrue("debug")) XLogger.load("logging-dope4j-debug.properties");
         var imagePath = Paths.get(commandOptions.getRequiredOption("imagePath"));
         LOGGER.info("Image path: {}", imagePath.toAbsolutePath());
@@ -112,7 +132,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                                 .map(Double::parseDouble)
                                 .orElse(DopeConstants.DEFAULT_PEAK_THRESHOLD),
                         newCuboid(objectSize),
-                        readCameraInfo(Paths.get(cameraInfoPath)),
+                        jsonUtils.readCameraInfo(Paths.get(cameraInfoPath)),
                         this);
         commandOptions
                 .getOption("cameraInfo")
@@ -120,7 +140,8 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                 .ifPresent(
                         path -> {
                             LOGGER.info("Reading camera info from: {}", path);
-                            var cameraInfo = objectsDecoder.cameraInfo = readCameraInfo(path);
+                            var cameraInfo =
+                                    objectsDecoder.cameraInfo = jsonUtils.readCameraInfo(path);
                             LOGGER.info("Camera info: {}", cameraInfo);
                             objectsDecoder.cameraInfo = cameraInfo;
                         });
@@ -165,20 +186,6 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         return new Cuboid3D(new Point3D(), vals[0], vals[1], vals[2]);
     }
 
-    private CameraInfo readCameraInfo(Path path) {
-        try {
-            return new YAMLMapper()
-                    .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-                    .registerModule(new RecordNamingStrategyPatchModule())
-                    .registerModule(new ParameterNamesModule())
-                    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                    .reader()
-                    .readValue(path.toFile(), CameraInfo.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private Optional<OutputPoses> processFromCache(Path imageFile) throws IOException {
         if (cacheFileMapper.isEmpty()) return Optional.empty();
         var tensorFile = cacheFileMapper.get().getTensorFile(imageFile);
@@ -195,7 +202,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
     private List<Path> listImageFiles(Path imagePath) throws IOException {
         var depth = commandOptions.isOptionTrue("recursiveScan") ? Integer.MAX_VALUE : 1;
         var regexp = commandOptions.getOption("imageFileRegexp").orElse(".*\\.(png|jpg)");
-        return Files.walk(imagePath, depth).filter(FilePredicates.match(regexp)).toList();
+        return Files.walk(imagePath, depth).filter(FilePredicates.match(regexp)).sorted().toList();
     }
 
     public static void main(String[] args) throws Exception {
