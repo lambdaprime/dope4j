@@ -57,4 +57,8 @@ public record OutputPoses(Cuboid3D object3d, List<? extends Cuboid2D> objects2d,
         builder.append("poses", poses());
         return builder.toString();
     }
+
+    public int size() {
+        return poses.size();
+    }
 }

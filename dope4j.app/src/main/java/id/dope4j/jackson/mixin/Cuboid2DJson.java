@@ -15,17 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package id.deeplearningutils.modality.cv.output;
+package id.dope4j.jackson.mixin;
 
-import id.mathcalc.Vector3d;
-import id.xfunction.XJsonStringBuilder;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import id.deeplearningutils.modality.cv.output.Point2D;
+import java.util.List;
 
-public record Pose(Point3D position, Vector3d orientation) {
-    @Override
-    public String toString() {
-        var builder = new XJsonStringBuilder();
-        builder.append("position", position());
-        // builder.append("orientation", orientation());
-        return builder.toString();
-    }
+public class Cuboid2DJson {
+
+    // ctor declaration need to match one in original class
+    @JsonCreator
+    public Cuboid2DJson(
+            @JsonProperty("center") Point2D center,
+            @JsonProperty("vertices") List<Point2D> vertices) {}
 }

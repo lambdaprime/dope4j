@@ -17,9 +17,15 @@
  */
 package id.dope4j;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import id.deeplearningutils.modality.cv.output.Cuboid2D;
+import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.dope4j.app.DeepObjectPoseEstimationApp;
+import id.dope4j.app.Dope4jResult;
+import id.dope4j.io.OutputPoses;
+import id.dope4j.jackson.mixin.Cuboid2DJson;
+import id.dope4j.jackson.mixin.Cuboid3DJson;
 import id.xfunction.cli.CommandOptions;
 import id.xfunction.nio.file.FilePredicates;
 import id.xfunctiontests.XAsserts;
@@ -32,9 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,22 +48,25 @@ public class Dope4jAppIT {
 
     private static final double POSE_DELTA = 0.0999;
     private static final Path imagePath = Paths.get("testset");
-    private static final List<JsonNode> dopeResults = new ArrayList<>();
-    private static final List<JsonNode> dope4jResults = new ArrayList<>();
+    private static final List<Dope4jResult> dopeResults = new ArrayList<>();
+    private static final List<Dope4jResult> dope4jResults = new ArrayList<>();
 
     @BeforeAll
     public static void setupAll() throws Exception {
-        var mapper = new JsonMapper();
-        mapper.getFactory()
-                .createParser(new FileReader("testset/results.json"))
-                .readValuesAs(JsonNode.class)
+        var reader =
+                new ObjectMapper()
+                        .registerModule(new Jdk8Module())
+                        .addMixIn(Cuboid2D.class, Cuboid2DJson.class)
+                        .addMixIn(Cuboid3D.class, Cuboid3DJson.class)
+                        .readerFor(Dope4jResult.class);
+        reader.<Dope4jResult>readValues(new FileReader("testset/results.json"))
                 .forEachRemaining(dopeResults::add);
         dopeResults.forEach(System.out::println);
-
         var out = new ByteArrayOutputStream();
         new DeepObjectPoseEstimationApp(
                         CommandOptions.collectOptions(
                                 new String[] {
+                                    "-action=runInference",
                                     "-imagePath=" + imagePath,
                                     "-objectSize=4.947199821472168,2.9923000335693359,8.3498001098632812",
                                     "-cache=true",
@@ -69,11 +76,7 @@ public class Dope4jAppIT {
                                 }),
                         new PrintStream(out))
                 .run();
-
-        mapper.getFactory()
-                .createParser(out.toByteArray())
-                .readValuesAs(JsonNode.class)
-                .forEachRemaining(dope4jResults::add);
+        reader.<Dope4jResult>readValues(out.toByteArray()).forEachRemaining(dope4jResults::add);
         dope4jResults.forEach(System.out::println);
     }
 
@@ -84,47 +87,35 @@ public class Dope4jAppIT {
     @ParameterizedTest
     @MethodSource("testDataProvider")
     public void test(Path image) throws Exception {
-        JsonNode expected = findJsonNode(dopeResults, image);
-        JsonNode actual = findJsonNode(dope4jResults, image);
+        var expected = findResult(dopeResults, image).detectedPoses();
+        var actual = findResult(dope4jResults, image).detectedPoses();
         Assertions.assertEquals(expected.size(), actual.size());
         assertPoses(expected, actual);
     }
 
-    private void assertPoses(JsonNode expected, JsonNode actual) {
-        var expectedPoses = expected.get("detectedPoses").findValue("poses");
-        var actualPoses = actual.get("detectedPoses").findValue("poses");
+    private void assertPoses(OutputPoses expected, OutputPoses actual) {
+        var expectedPoses = expected.poses();
+        var actualPoses = actual.poses();
         for (int i = 0; i < expectedPoses.size(); i++) {
-            var expectedPose = expectedPoses.get(i).get("position");
-            var actualPose = actualPoses.get(i).get("position");
-            XAsserts.assertSimilar(
-                    expectedPose.get("x").doubleValue(),
-                    actualPose.get("x").doubleValue(),
-                    POSE_DELTA);
-            XAsserts.assertSimilar(
-                    expectedPose.get("y").doubleValue(),
-                    actualPose.get("y").doubleValue(),
-                    POSE_DELTA);
-            XAsserts.assertSimilar(
-                    expectedPose.get("z").doubleValue(),
-                    actualPose.get("z").doubleValue(),
-                    POSE_DELTA);
+            var expectedPose = expectedPoses.get(i).position();
+            var actualPose = actualPoses.get(i).position();
+            XAsserts.assertSimilar(expectedPose.getX(), actualPose.getX(), POSE_DELTA);
+            XAsserts.assertSimilar(expectedPose.getY(), actualPose.getY(), POSE_DELTA);
+            XAsserts.assertSimilar(expectedPose.getZ(), actualPose.getZ(), POSE_DELTA);
         }
     }
 
     /** Finds results for current test image */
-    private JsonNode findJsonNode(List<JsonNode> jsonNodes, Path image) {
+    private Dope4jResult findResult(List<Dope4jResult> results, Path image) {
         var imageFileName = image.getFileName().toString();
-        Predicate<JsonNode> resultFinder =
-                n ->
-                        n.findValuesAsText("imagePath").stream()
-                                .map(Paths::get)
-                                .map(Path::getFileName)
-                                .map(Path::toString)
-                                .filter(p -> p.startsWith(imageFileName))
-                                .findFirst()
-                                .isPresent();
-        return StreamSupport.stream(jsonNodes.spliterator(), false)
-                .filter(resultFinder)
+        return results.stream()
+                .filter(
+                        res ->
+                                res.imagePath()
+                                        .get()
+                                        .getFileName()
+                                        .toString()
+                                        .startsWith(imageFileName))
                 .findFirst()
                 .orElseThrow();
     }

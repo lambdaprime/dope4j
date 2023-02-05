@@ -20,6 +20,19 @@ def printImg(img):
 def fmt(num):
     return num #round(num, 3)
 
+def point2d(ar):
+    return {
+        "x": fmt(ar[0]),
+        "y": fmt(ar[1])
+    }
+
+def point3d(ar):
+    return {
+        "x": fmt(ar[0]),
+        "y": fmt(ar[1]),
+        "z": fmt(ar[2])
+    }
+
 print("Starting")
 
 DEBUG=False
@@ -83,17 +96,25 @@ for filePath in sorted(os.listdir(testsetDir)):
     objects2d = []
     poses = []
     for result in results:
-        objects2d.append(np.array(result['projected_points']).tolist())
+        objects2d.append({
+            "center": point2d(result['projected_points'][8]),
+            "vertices": [
+                point2d(result['projected_points'][0]),
+                point2d(result['projected_points'][1]),
+                point2d(result['projected_points'][2]),
+                point2d(result['projected_points'][3]),
+                point2d(result['projected_points'][4]),
+                point2d(result['projected_points'][5]),
+                point2d(result['projected_points'][6]),
+                point2d(result['projected_points'][8])
+            ]
+        })
         if result['location'] is not None:
             poses.append({
-                "position": {
-                    "x": fmt(result['location'][0]),
-                    "y": fmt(result['location'][1]),
-                    "z": fmt(result['location'][2])
-                },
-                "orientation": {
-                    "values": [fmt(n) for n in np.array(result['quaternion']).tolist()]
-                }
+                "position": point3d(result['location']),
+                #"orientation": {
+                #    "values": [fmt(n) for n in np.array(result['quaternion']).tolist()]
+                #}
             })
     outJson = json.dumps({
         "imagePath": filePath,

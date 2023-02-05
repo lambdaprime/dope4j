@@ -15,17 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package id.deeplearningutils.modality.cv.output;
+package id.dope4j.app;
 
-import id.mathcalc.Vector3d;
+import id.dope4j.io.OutputPoses;
 import id.xfunction.XJsonStringBuilder;
+import java.nio.file.Path;
+import java.util.Optional;
 
-public record Pose(Point3D position, Vector3d orientation) {
+public record Dope4jResult(Optional<Path> imagePath, OutputPoses detectedPoses) {
     @Override
     public String toString() {
         var builder = new XJsonStringBuilder();
-        builder.append("position", position());
-        // builder.append("orientation", orientation());
+        builder.append("imagePath", imagePath());
+        builder.append("detectedPoses", detectedPoses());
         return builder.toString();
     }
 }

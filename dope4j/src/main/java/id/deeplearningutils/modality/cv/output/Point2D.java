@@ -36,6 +36,10 @@ public class Point2D extends Point {
                 return p1.getX() == p2.getX() ? Double.compare(p1.getY(), p2.getY()) : 1;
             };
 
+    public Point2D() {
+        this(0, 0);
+    }
+
     public Point2D(double x, double y) {
         super(x, y);
     }
