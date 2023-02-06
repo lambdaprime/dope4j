@@ -104,6 +104,6 @@ public class Dope4jAppIT {
                                         .toString()
                                         .startsWith(imageFileName))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() -> new RuntimeException("Could not find results for " + image));
     }
 }

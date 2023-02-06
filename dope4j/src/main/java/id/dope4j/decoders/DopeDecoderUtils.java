@@ -43,9 +43,9 @@ import id.matcv.camera.CameraInfo;
 import id.mathcalc.Vector2f;
 import id.xfunction.Preconditions;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
@@ -172,7 +172,11 @@ public class DopeDecoderUtils {
             List<List<Point2D>> verticesLists,
             AffinityFields affinityFields) {
         Map<Point2D, List<Point2D>> objectsMap =
-                centerPoints.stream().collect(Collectors.toMap(i -> i, i -> new ArrayList<>()));
+                centerPoints.stream()
+                        .collect(
+                                () -> new LinkedHashMap<>(),
+                                (m, p) -> m.put(p, new ArrayList<>()),
+                                (m1, m2) -> m1.putAll(m2));
         for (int beliefMapId = 0;
                 beliefMapId < DopeConstants.BELIEF_MAPS_COUNT - 1;
                 beliefMapId++) {

@@ -17,23 +17,22 @@ def printImg(img):
             for c in range(3):
                 print(img.item(x, y, c))
 
-def fmt(num):
-    return num #round(num, 3)
-
 def point2d(ar):
+    if ar is None:
+        return
     return {
-        "x": fmt(ar[0]),
-        "y": fmt(ar[1])
+        "x": ar[0],
+        "y": ar[1]
     }
 
 def point3d(ar):
+    if ar is None:
+        return
     return {
-        "x": fmt(ar[0]),
-        "y": fmt(ar[1]),
-        "z": fmt(ar[2])
+        "x": ar[0],
+        "y": ar[1],
+        "z": ar[2]
     }
-
-print("Starting")
 
 DEBUG=False
 
@@ -58,21 +57,21 @@ if DEBUG is True:
     print("dist_coeffs")
     print(dist_coeffs)
 
+print("Starting")
 print("Loading ChocolatePudding model")
 model = ModelData("ChocolatePudding", "/tmp/models/ChocolatePudding.pth")
 model.load_net_model()
 
-pnp_solver = \
-                CuboidPNPSolver(
-                    model,
-                    cuboid3d=Cuboid3d([4.947199821472168, 2.9923000335693359, 8.3498001098632812])
-                )
+pnp_solver = CuboidPNPSolver(
+    model,
+    cuboid3d=Cuboid3d([4.947199821472168, 2.9923000335693359, 8.3498001098632812]))
 pnp_solver.set_camera_intrinsic_matrix(camera_matrix)
 pnp_solver.set_dist_coeffs(dist_coeffs)
 
 outFile = open('/tmp/dope4j/testset/results.json', 'w')
 
-# use processed images which sent to the network directly
+# use images from cache which can be sent to the network directly
+# and does not require resizing or any other preprocessing
 testsetDir = "/tmp/dope4j/testset/_cache"
 
 for filePath in sorted(os.listdir(testsetDir)):
@@ -96,6 +95,8 @@ for filePath in sorted(os.listdir(testsetDir)):
     objects2d = []
     poses = []
     for result in results:
+        if result['location'] is None:
+            continue
         objects2d.append({
             "center": point2d(result['projected_points'][8]),
             "vertices": [
