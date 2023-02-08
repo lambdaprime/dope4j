@@ -17,7 +17,6 @@
  */
 package id.deeplearningutils.modality.cv.output;
 
-import ai.djl.modality.cv.output.Point;
 import id.xfunction.Preconditions;
 import id.xfunction.XJsonStringBuilder;
 import java.util.Arrays;
@@ -124,39 +123,39 @@ public class Cuboid2D {
         return vertices;
     }
 
-    public Point getCenter() {
+    public Point2D getCenter() {
         return center;
     }
 
-    public Point v1() {
+    public Point2D v1() {
         return v1;
     }
 
-    public Point v2() {
+    public Point2D v2() {
         return v2;
     }
 
-    public Point v3() {
+    public Point2D v3() {
         return v3;
     }
 
-    public Point v4() {
+    public Point2D v4() {
         return v4;
     }
 
-    public Point v5() {
+    public Point2D v5() {
         return v5;
     }
 
-    public Point v6() {
+    public Point2D v6() {
         return v6;
     }
 
-    public Point v7() {
+    public Point2D v7() {
         return v7;
     }
 
-    public Point v8() {
+    public Point2D v8() {
         return v8;
     }
 
