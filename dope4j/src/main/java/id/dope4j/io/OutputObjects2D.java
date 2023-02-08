@@ -38,4 +38,8 @@ public record OutputObjects2D(List<? extends Cuboid2D> cuboids2d) {
         builder.append("cuboids2d", cuboids2d());
         return builder.toString();
     }
+
+    public Object size() {
+        return cuboids2d.size();
+    }
 }

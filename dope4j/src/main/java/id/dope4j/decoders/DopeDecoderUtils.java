@@ -31,6 +31,7 @@ import id.deeplearningutils.modality.cv.output.Cuboid2D;
 import id.deeplearningutils.modality.cv.output.Cuboid3D;
 import id.deeplearningutils.modality.cv.output.Point2D;
 import id.dope4j.DopeConstants;
+import id.dope4j.decoders.CuboidVertexMatcher.VectorField;
 import id.dope4j.io.AffinityFields;
 import id.dope4j.io.OutputKeypoints;
 import id.dope4j.io.OutputObjects2D;
@@ -43,9 +44,7 @@ import id.matcv.camera.CameraInfo;
 import id.mathcalc.Vector2f;
 import id.xfunction.Preconditions;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfFloat;
@@ -161,67 +160,25 @@ public class DopeDecoderUtils {
         return new OutputKeypoints(verticesBeliefs, centerPointBeliefs);
     }
 
-    /**
-     * Returns map of pairs: [center point: vertices], where vertices are all vertices of the cuboid
-     * which matches to this center point. For those cuboid vertices which was not found because
-     * they does not exist in verticesLists we return null. This guarantees that for each center
-     * point we always will return list of 8 vertices but some vertices in this list may be null.
-     */
-    private Map<Point2D, List<Point2D>> matchCenterPointsWithVertices(
-            List<Point2D> centerPoints,
-            List<List<Point2D>> verticesLists,
-            AffinityFields affinityFields) {
-        Map<Point2D, List<Point2D>> objectsMap =
-                centerPoints.stream()
-                        .collect(
-                                () -> new LinkedHashMap<>(),
-                                (m, p) -> m.put(p, new ArrayList<>()),
-                                (m1, m2) -> m1.putAll(m2));
-        for (int beliefMapId = 0;
-                beliefMapId < DopeConstants.BELIEF_MAPS_COUNT - 1;
-                beliefMapId++) {
-            var vertexId = beliefMapId;
-            var vertices = verticesLists.get(beliefMapId);
-            for (var vertex : vertices) {
-                double minDistance = Integer.MAX_VALUE;
-                Point2D candidateCenterPoint = null;
-                for (var center : centerPoints) {
-                    var affinityVec = affinityFields.getValue(beliefMapId, vertex).normalize();
-                    var vec =
-                            new Vector2f(
-                                            (float) (center.getX() - vertex.getX()),
-                                            (float) (center.getY() - vertex.getY()))
-                                    .normalize();
-                    var angle = affinityVec.sub(vec).norm();
-                    var distance = vertex.distance(center);
-                    if (distance < minDistance) {
-                        candidateCenterPoint = center;
-                        minDistance = distance;
-                    }
-                }
-                if (candidateCenterPoint != null) objectsMap.get(candidateCenterPoint).add(vertex);
-            }
-            objectsMap.forEach(
-                    (c, l) -> {
-                        // For those center points which does not have matched vertex with current
-                        // id we add null
-                        if (l.size() < vertexId + 1) l.add(null);
-                    });
-        }
-        return objectsMap;
-    }
-
     public OutputObjects2D findObjects(OutputKeypoints keypoints, AffinityFields affinityFields) {
         if (keypoints == OutputKeypoints.EMPTY) return OutputObjects2D.EMPTY;
         var objectsMap =
-                matchCenterPointsWithVertices(
-                        keypoints.centerPoints(), keypoints.vertices(), affinityFields);
+                new CuboidVertexMatcher(
+                                keypoints.centerPoints(),
+                                keypoints.vertices(),
+                                new VectorField() {
+                                    @Override
+                                    public Vector2f get(int cuboidVertexId, Point2D vertex) {
+                                        return affinityFields.getValue(cuboidVertexId, vertex);
+                                    }
+                                })
+                        .match();
         var objects =
                 new OutputObjects2D(
                         objectsMap.entrySet().stream()
                                 .map(e -> newCuboid2D(e.getKey(), e.getValue()))
                                 .toList());
-        LOGGER.debug("Detected objects: {}", objects);
+        LOGGER.debug("Detected {} objects: {}", objects.size(), objects);
         return objects;
     }
 
