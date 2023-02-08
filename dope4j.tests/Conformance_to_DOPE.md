@@ -30,3 +30,62 @@ As we can see 1.135(6)5475e-04 != 1.135(7)e-04. This 0.0001 delta during pose ca
 
 To summarize: it is expected to have a some delta between `dope4j` and DOPE results.
 
+# Comparison results
+
+The comparison was done for ChocolatePudding on [Household Objects for Pose Estimation (HOPE) dataset](https://github.com/swtyree/hope-dataset/)
+
+```
+@inproceedings{tyree2022hope,
+  author={Tyree, Stephen and Tremblay, Jonathan and To, Thang and Cheng, Jia and Mosier, Terry and Smith, Jeffrey and Birchfield, Stan},
+  title={6-DoF Pose Estimation of Household Objects for Robotic Manipulation: An Accessible Dataset and Benchmark},
+  booktitle={International Conference on Intelligent Robots and Systems (IROS)},
+  year={2022}
+}
+```
+
+The allowed delta between both results was set to 0.0999.
+
+![Test_results](conformance/test_results.png)
+
+For 8 failed tests from total 199 the difference was mostly not significant like here (on all images below dope4j result on the left side and DOPE on the right):
+
+![scene_0038_0000_rgb](conformance/scene_0038_0000_rgb.jpg)
+
+- DOPE:
+```
+"poses": [
+  {
+    "position": {
+      "x": -13.009053297465291,
+      "y": 12.623985438342013,
+      "z": 87.54625275751506
+    }
+  },
+  {
+    "position": {
+      "x": -5.464752249609119,
+      "y": 16.25970777221808,
+      "z": 75.87259106423251
+    }
+  }
+]
+```
+- dope4j:
+```
+"poses": [
+  {
+    "position": {
+      "x": -10.3994380475,
+      "y": 11.1743056245,
+      "z": 73.9245146592
+    }
+  },
+  {
+    "position": {
+      "x": -5.4648787834,
+      "y": 16.2598811686,
+      "z": 75.8732746167
+    }
+  }
+]
+```
