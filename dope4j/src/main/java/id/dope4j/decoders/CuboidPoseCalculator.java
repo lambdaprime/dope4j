@@ -25,6 +25,12 @@ import id.matcv.MatConverters;
 import id.matcv.MatUtils;
 import id.matcv.camera.CameraInfo;
 import id.xfunction.Preconditions;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.Meter;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +54,21 @@ public class CuboidPoseCalculator {
             Map.of(
                     Calib3d.SOLVEPNP_P3P, "SOLVEPNP_P3P",
                     Calib3d.SOLVEPNP_ITERATIVE, "SOLVEPNP_ITERATIVE");
+    private static final Meter METER =
+            GlobalOpenTelemetry.getMeter(CuboidPoseCalculator.class.getSimpleName());
+    private static final LongCounter SOLVEPNP_P3P_TOTAL =
+            METER.counterBuilder("solvepnp_p3p")
+                    .setDescription("SOLVEPNP_P3P algorithm used for pose estimation")
+                    .build();
+    private static final LongCounter SOLVEPNP_ITERATIVE_TOTAL =
+            METER.counterBuilder("solvepnp_iterative")
+                    .setDescription("SOLVEPNP_ITERATIVE_TOTAL algorithm used for pose estimation")
+                    .build();
+    private static final LongHistogram POSE_CALC_TIME_METER =
+            METER.histogramBuilder("pose_calc_time_ms")
+                    .setDescription("Pose calculation time in millis")
+                    .ofLongs()
+                    .build();
     private static final MatConverters matConverters = new MatConverters();
     private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
     private static final MatUtils utils = new MatUtils();
@@ -84,7 +105,12 @@ public class CuboidPoseCalculator {
         var cuboid3d = createCuboid3dModel(cuboid2d);
         var points3d = converters.copyToMatOfPoint3f(cuboid3d);
         utils.debugMat("points3d", points3d);
-        return findPose(points2d, points3d);
+        var startAt = Instant.now();
+        try {
+            return findPose(points2d, points3d);
+        } finally {
+            POSE_CALC_TIME_METER.record(Duration.between(startAt, Instant.now()).toMillis());
+        }
     }
 
     /**
@@ -118,7 +144,10 @@ public class CuboidPoseCalculator {
                 points2d = new MatOfPoint2f(points2d.rowRange(0, 4));
                 points3d = new MatOfPoint3f(points3d.rowRange(0, 4));
             }
+            SOLVEPNP_P3P_TOTAL.add(1);
             method = Calib3d.SOLVEPNP_P3P;
+        } else {
+            SOLVEPNP_ITERATIVE_TOTAL.add(1);
         }
         if (LOGGER.isDebugEnabled()) LOGGER.debug("Using PnP method: {}", PNP_METHODS.get(method));
         Preconditions.equals(points2d.rows(), points3d.rows(), "Vertex count mismatch");

@@ -24,9 +24,17 @@ import java.util.List;
 /**
  * @author lambdaprime intid@protonmail.com
  */
-public record OutputKeypoints(List<List<Point2D>> vertices, List<Point2D> centerPoints) {
+public record OutputKeypoints(
+        int keypointsCount, List<List<Point2D>> vertices, List<Point2D> centerPoints) {
 
     public static final OutputKeypoints EMPTY = new OutputKeypoints(List.of(), List.of());
+
+    public OutputKeypoints(List<List<Point2D>> vertices, List<Point2D> centerPoints) {
+        this(
+                centerPoints.size() + (int) vertices.stream().flatMap(List::stream).count(),
+                vertices,
+                centerPoints);
+    }
 
     /**
      * There are 8 lists in total which represent 8 corners of 3D cuboids which surround the object
@@ -38,6 +46,11 @@ public record OutputKeypoints(List<List<Point2D>> vertices, List<Point2D> center
     /** Center points of all objects */
     public List<Point2D> centerPoints() {
         return centerPoints;
+    }
+
+    /** Total number of all keypoints */
+    public int keypointsCount() {
+        return keypointsCount;
     }
 
     @Override

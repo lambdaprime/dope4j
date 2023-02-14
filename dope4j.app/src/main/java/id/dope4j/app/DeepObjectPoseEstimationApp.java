@@ -29,6 +29,8 @@ import id.dope4j.impl.CacheFileMapper;
 import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputPoses;
 import id.dope4j.jackson.JsonUtils;
+import id.opentelemetry.exporters.CsvMetricExporter;
+import id.opentelemetry.exporters.ElasticSearchMetricExporter;
 import id.xfunction.ResourceUtils;
 import id.xfunction.cli.ArgumentParsingException;
 import id.xfunction.cli.CommandOptions;
@@ -36,8 +38,13 @@ import id.xfunction.function.LazyInitializer;
 import id.xfunction.logging.XLogger;
 import id.xfunction.nio.file.FilePredicates;
 import id.xfunction.nio.file.XFiles;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.metrics.export.MetricExporter;
+import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -56,7 +63,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author lambdaprime intid@protonmail.com
  */
-public class DeepObjectPoseEstimationApp implements Inspector.Builder {
+public class DeepObjectPoseEstimationApp implements Inspector.Builder, AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeepObjectPoseEstimationApp.class);
     private static final String CACHE_FOLDER_NAME = "_cache_dope4j";
@@ -65,6 +72,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
     private ObjectsDecoder objectsDecoder;
     private Optional<CacheFileMapper> cacheFileMapper = Optional.empty();
     private PrintStream out;
+    private Optional<SdkMeterProvider> sdkMeterProvider = Optional.empty();
 
     static {
         OpenCV.loadLocally();
@@ -90,6 +98,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
             default -> throw new ArgumentParsingException(
                     "Unknown action: " + commandOptions.getRequiredOption("action"));
         }
+        sdkMeterProvider.ifPresent(SdkMeterProvider::forceFlush);
     }
 
     private void showResults() throws IOException {
@@ -125,6 +134,27 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         LOGGER.info("Reading camera info from: {}", cameraInfoPath);
         var objectSize = commandOptions.getRequiredOption("objectSize");
         LOGGER.info("Object cuboid size: {}", objectSize);
+        commandOptions
+                .getOption("exportMetricsToElastic")
+                .map(URI::create)
+                .ifPresent(
+                        uri -> {
+                            LOGGER.info("Emitting metrics to ElasticSearch");
+                            var exporter = new ElasticSearchMetricExporter(uri, true);
+                            configureMetrics(exporter);
+                        });
+        commandOptions
+                .getOption("exportMetricsToCsv")
+                .map(Paths::get)
+                .ifPresent(
+                        path -> {
+                            LOGGER.info("Emitting metrics to CSV files in {}", path);
+                            try {
+                                configureMetrics(new CsvMetricExporter(path));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        });
         objectsDecoder =
                 new ObjectsDecoder(
                         commandOptions
@@ -172,6 +202,14 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
         } finally {
             serviceGetter.ifInitialized(AutoCloseable::close);
         }
+    }
+
+    private void configureMetrics(MetricExporter exporter) {
+        var metricReader =
+                PeriodicMetricReader.builder(exporter).setInterval(Duration.ofSeconds(3)).build();
+        var provider = SdkMeterProvider.builder().registerMetricReader(metricReader).build();
+        OpenTelemetrySdk.builder().setMeterProvider(provider).buildAndRegisterGlobal();
+        sdkMeterProvider = Optional.of(provider);
     }
 
     private Cuboid3D newCuboid(String objectSize) {
@@ -246,5 +284,11 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder {
                 commandOptions.isOptionTrue("showMatchedVertices"),
                 commandOptions.isOptionTrue("showCuboids2D"),
                 commandOptions.isOptionTrue("showProjectedCuboids2D"));
+    }
+
+    @Override
+    public void close() {
+        LOGGER.info("Closing the application");
+        sdkMeterProvider.ifPresent(SdkMeterProvider::close);
     }
 }

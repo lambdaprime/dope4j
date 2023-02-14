@@ -27,6 +27,9 @@ import id.dope4j.impl.DopeTranslator;
 import id.dope4j.impl.Utils;
 import id.dope4j.io.InputImage;
 import id.xfunction.util.LazyService;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.Meter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -44,6 +47,18 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(DeepObjectPoseEstimationService.class);
+    private static final Meter METER =
+            GlobalOpenTelemetry.getMeter(DeepObjectPoseEstimationService.class.getSimpleName());
+    private static final LongCounter ANALYZE_COUNTER =
+            METER.counterBuilder("analyze").setDescription("Number of method calls").build();
+    private static final LongCounter IMAGES_COUNTER =
+            METER.counterBuilder("input_images")
+                    .setDescription("Total number of input images")
+                    .build();
+    private static final LongCounter ANALYZED_IMAGES_COUNTER =
+            METER.counterBuilder("analyzed_images")
+                    .setDescription("Total number of images analyzed")
+                    .build();
 
     private String modelUrl;
     private Model model;
@@ -57,6 +72,8 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
     /** Perform batch inference */
     public List<T> analyze(Path... images) throws DopeException {
         startLazy();
+        ANALYZE_COUNTER.add(1);
+        IMAGES_COUNTER.add(images.length);
         if (images.length == 0) {
             LOGGER.warn("Received empty list of images, nothing to analyze");
             return List.of();
@@ -90,6 +107,7 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
                             .map(Optional::get)
                             .toList();
             LOGGER.info("Inference completed");
+            ANALYZED_IMAGES_COUNTER.add(output.size());
             return output;
         } catch (TranslateException e) {
             throw new DopeException(e);

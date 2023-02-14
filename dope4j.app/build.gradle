@@ -15,13 +15,16 @@ dependencies {
   addDependencies(this, ["implementation"], "1.7.36", [
     "org.slf4j:slf4j-jdk14"
   ]);
-
   addDependencies(this, ["implementation", "apiElements"], "2.14.1", [
     "com.fasterxml.jackson.core:jackson-databind",
     "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
     "com.fasterxml.jackson.module:jackson-module-parameter-names",
     "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
   ]);
+  addDependencies(this, ["implementation", "apiElements"], "1.0-SNAPSHOT", [
+    "io.github.lambdaprime:opentelemetry-exporters-pack"
+  ]);
+
 }
 
 configurations {

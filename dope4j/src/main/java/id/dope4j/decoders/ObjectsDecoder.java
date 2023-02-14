@@ -28,6 +28,12 @@ import id.dope4j.io.OutputObjects2D;
 import id.dope4j.io.OutputPoses;
 import id.dope4j.io.OutputTensor;
 import id.matcv.camera.CameraInfo;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.Meter;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +49,26 @@ public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectsDecoder.class);
     private static final DopeDecoderUtils decoderUtils = new DopeDecoderUtils();
+    private static final Meter METER =
+            GlobalOpenTelemetry.getMeter(ObjectsDecoder.class.getSimpleName());
+    private static final LongCounter INPUT_TENSORS_TOTAL =
+            METER.counterBuilder("input_tensors_total")
+                    .setDescription("Total number of received tensors to be decoded")
+                    .build();
+    private static final LongCounter DETECTED_OBJECTS_TOTAL =
+            METER.counterBuilder("detected_objects_total")
+                    .setDescription("Total number of objects detected")
+                    .build();
+    private static final LongHistogram KEYPOINTS_PER_IMAGE =
+            METER.histogramBuilder("keypoints_detected")
+                    .setDescription("Total number of keypoints detected per image")
+                    .ofLongs()
+                    .build();
+    private static final LongHistogram DECODE_TIME_METER =
+            METER.histogramBuilder("decode_time_ms")
+                    .setDescription("Decode time in millis")
+                    .ofLongs()
+                    .build();
 
     /**
      * Decoding DOPE output is multistep process. Inspector allows to introspect every step of this
@@ -96,17 +122,22 @@ public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
     @Override
     public Optional<OutputPoses> decode(InputImage inputImage, NDArray outputTensor)
             throws DopeException {
+        INPUT_TENSORS_TOTAL.add(1);
         LOGGER.debug("Input image: {}", inputImage);
         debugNDArray("Input tensor", outputTensor, "0:3, 0:3, 0:3");
         var inspectorOpt = inspectorBuilder.map(builder -> builder.build(inputImage));
         try {
+            var startAt = Instant.now();
             var output = decoderUtils.readDopeOutput(outputTensor);
-            inspectorOpt.ifPresent(inspector -> inspector.inspectTensor(output));
             var keypoints = decoderUtils.findKeypoints(output, threshold);
-            inspectorOpt.ifPresent(inspector -> inspector.inspectKeypoints(keypoints));
             var objects2d = decoderUtils.findObjects(keypoints, output.affinities());
-            inspectorOpt.ifPresent(inspector -> inspector.inspectOjects2D(objects2d));
             var poses = decoderUtils.findPoses(objects2d, cuboid3DModel, cameraInfo);
+            KEYPOINTS_PER_IMAGE.record(keypoints.keypointsCount());
+            DETECTED_OBJECTS_TOTAL.add(objects2d.size());
+            DECODE_TIME_METER.record(Duration.between(startAt, Instant.now()).toMillis());
+            inspectorOpt.ifPresent(inspector -> inspector.inspectTensor(output));
+            inspectorOpt.ifPresent(inspector -> inspector.inspectKeypoints(keypoints));
+            inspectorOpt.ifPresent(inspector -> inspector.inspectOjects2D(objects2d));
             inspectorOpt.ifPresent(inspector -> inspector.inspectPoses(poses));
             return Optional.of(poses);
         } finally {

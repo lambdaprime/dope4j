@@ -20,6 +20,11 @@ package id.dope4j.decoders;
 import id.deeplearningutils.modality.cv.output.Point2D;
 import id.mathcalc.Vector2f;
 import id.xfunction.Preconditions;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.Meter;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -79,6 +84,18 @@ public class CuboidVertexMatcher {
     }
 
     private static final int VERTEX_COUNT = 8;
+    private static final Meter METER =
+            GlobalOpenTelemetry.getMeter(CuboidVertexMatcher.class.getSimpleName());
+    private static final LongHistogram CENTER_POINTS =
+            METER.histogramBuilder("center_points")
+                    .setDescription("Number of center points against which to match vertices")
+                    .ofLongs()
+                    .build();
+    private static final LongHistogram MATCHER_TIME_METER =
+            METER.histogramBuilder("matcher_time_ms")
+                    .setDescription("Center points matcher time in millis")
+                    .ofLongs()
+                    .build();
     private List<Point2D> centerPoints;
     private List<List<Point2D>> verticesLists;
     private VectorField vectorField;
@@ -101,6 +118,8 @@ public class CuboidVertexMatcher {
     }
 
     public Map<Point2D, List<Point2D>> match() {
+        CENTER_POINTS.record(centerPoints.size());
+        var startAt = Instant.now();
         // cuboidsMap[i] = [all 8 vertices of a cuboid with center point centerPoints[i]]
         var cuboidsMap =
                 Stream.generate(() -> new ArrayList<Point2D>(VERTEX_COUNT))
@@ -157,16 +176,20 @@ public class CuboidVertexMatcher {
                 candidatesMap.get(i).clear();
             }
         }
-        return IntStream.range(0, cuboidsMap.size())
-                .boxed()
-                .collect(
-                        Collectors.toMap(
-                                i -> centerPoints.get(i),
-                                i -> cuboidsMap.get(i),
-                                (m1, m2) -> {
-                                    throw new RuntimeException(
-                                            "Collision between center point indices");
-                                },
-                                () -> new LinkedHashMap<>(centerPoints.size())));
+        try {
+            return IntStream.range(0, cuboidsMap.size())
+                    .boxed()
+                    .collect(
+                            Collectors.toMap(
+                                    i -> centerPoints.get(i),
+                                    i -> cuboidsMap.get(i),
+                                    (m1, m2) -> {
+                                        throw new RuntimeException(
+                                                "Collision between center point indices");
+                                    },
+                                    () -> new LinkedHashMap<>(centerPoints.size())));
+        } finally {
+            MATCHER_TIME_METER.record(Duration.between(startAt, Instant.now()).toMillis());
+        }
     }
 }

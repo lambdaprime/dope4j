@@ -43,6 +43,11 @@ import id.matcv.accessors.Float2DAccessor;
 import id.matcv.camera.CameraInfo;
 import id.mathcalc.Vector2f;
 import id.xfunction.Preconditions;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.Meter;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.opencv.core.Core;
@@ -66,6 +71,14 @@ import org.slf4j.LoggerFactory;
 public class DopeDecoderUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DopeDecoderUtils.class);
+    private static final Meter METER =
+            GlobalOpenTelemetry.getMeter(DopeDecoderUtils.class.getSimpleName());
+    private static final LongHistogram FINDKEYPOINTS_TIME_METER =
+            METER.histogramBuilder("findkeypoints_time_ms")
+                    .setDescription("Find keypoints time in millis")
+                    .ofLongs()
+                    .build();
+
     private MatUtils utils = new MatUtils();
     private OpenCvKit openCvKit = new OpenCvKit();
 
@@ -97,6 +110,7 @@ public class DopeDecoderUtils {
      * which not.
      */
     public OutputKeypoints findKeypoints(OutputTensor output, double threshold) {
+        var startAt = Instant.now();
         var beliefMaps = output.beliefMaps();
         List<List<Point>> allPeaks = new ArrayList<>();
         List<List<Point2D>> keypoints = new ArrayList<>();
@@ -144,6 +158,7 @@ public class DopeDecoderUtils {
                                                     p.y + DopeConstants.OFFSET_DUE_TO_UPSAMPLING))
                             .toList());
         }
+        FINDKEYPOINTS_TIME_METER.record(Duration.between(startAt, Instant.now()).toMillis());
 
         if (keypointsCount == 0) {
             LOGGER.warn("No keypoints found, peaks threshold {}", threshold);
@@ -151,7 +166,7 @@ public class DopeDecoderUtils {
         }
 
         LOGGER.debug("Detected peaks: {}", allPeaks);
-        LOGGER.debug("Detected keypoints: {}", keypoints);
+        LOGGER.debug("Detected {} keypoints: {}", keypointsCount, keypoints);
 
         var verticesBeliefs = keypoints.subList(0, DopeConstants.BELIEF_MAPS_COUNT - 1);
         LOGGER.debug("Detected vertices: {}", verticesBeliefs);

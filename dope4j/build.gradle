@@ -46,6 +46,9 @@ dependencies {
   addDependencies(this, ["implementation", "apiElements"], "1.7.36", [
     "org.slf4j:slf4j-api",
   ]);
+  addDependencies(this, ["implementation", "apiElements"], "1.22.0", [
+    "io.opentelemetry:opentelemetry-api",
+  ]);
 
 }
 

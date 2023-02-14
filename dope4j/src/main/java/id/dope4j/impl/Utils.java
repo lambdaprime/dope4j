@@ -32,7 +32,12 @@ import id.matcv.OpenCvKit;
 import id.matcv.RgbColors;
 import id.matcv.accessors.Vector2f2DAccessor;
 import id.xfunction.Preconditions;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.Meter;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import org.opencv.core.Mat;
@@ -45,6 +50,13 @@ public class Utils {
     private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
     private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
     private static final OpenCvKit openCvKit = new OpenCvKit();
+
+    private static final Meter METER = GlobalOpenTelemetry.getMeter(Utils.class.getSimpleName());
+    private static final LongHistogram LOAD_TIME_METER =
+            METER.histogramBuilder("model_load_time_ms")
+                    .setDescription("Model load time in millis")
+                    .ofLongs()
+                    .build();
 
     public static void debugNDArray(String description, NDArray array, String slice) {
         if (!LOGGER.isDebugEnabled()) return;
@@ -112,7 +124,9 @@ public class Utils {
                         .optEngine("OnnxRuntime") // use OnnxRuntime engine by default
                         .optOption("ortDevice", "TensorRT")
                         .build();
+        var startAt = Instant.now();
         var model = criteria.loadModel();
+        LOAD_TIME_METER.record(Duration.between(startAt, Instant.now()).toMillis());
         LOGGER.info("Model loaded");
         LOGGER.info("Model name: {}", model.getName());
         LOGGER.info("Model data type: {}", model.getDataType());

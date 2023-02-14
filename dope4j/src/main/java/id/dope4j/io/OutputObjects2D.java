@@ -39,7 +39,7 @@ public record OutputObjects2D(List<? extends Cuboid2D> cuboids2d) {
         return builder.toString();
     }
 
-    public Object size() {
+    public int size() {
         return cuboids2d.size();
     }
 }

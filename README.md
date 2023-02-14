@@ -65,6 +65,10 @@ Optional options:
 
 `-debug=<true|false>` - print debug information and log it to `dope4j-debug.log` inside system temporary folder. Default is "false".
 
+`-exportMetricsToCsv=<path>` - path to local folder where emitted metrics will be exported in CSV format.
+
+`-exportMetricsToElastic=<elasticsearch_url>` - address of ElasticSearch where to emit metrics. Credentials can be part of the URL. Example http://user:password@localhost:9200
+
 `-totalRunTime=<true|false>` - print total execution time when command finishes.
 
 ## showResults

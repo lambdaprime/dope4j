@@ -23,7 +23,9 @@ import id.dope4j.io.OutputPoses;
 import id.dope4j.jackson.JsonUtils;
 import id.xfunction.cli.CommandOptions;
 import id.xfunction.nio.file.FilePredicates;
+import id.xfunction.nio.file.XFiles;
 import id.xfunctiontests.XAsserts;
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -42,6 +44,8 @@ public class Dope4jAppIT {
     private static final double POSE_DELTA = 0.0999;
     private static final JsonUtils jsonUtils = new JsonUtils();
     private static final Path imagePath = Paths.get("testset");
+    private static final Path metricsFolder =
+            XFiles.TEMP_FOLDER.map(p -> p.resolve("dope4jmetrics")).orElseThrow();
     private static List<Dope4jResult> dopeResults;
     private static List<Dope4jResult> dope4jResults;
 
@@ -50,6 +54,7 @@ public class Dope4jAppIT {
         dopeResults = jsonUtils.readDope4jResults(Paths.get("testset/results.json"));
         dopeResults.forEach(System.out::println);
         var out = new ByteArrayOutputStream();
+        GlobalOpenTelemetry.resetForTest();
         new DeepObjectPoseEstimationApp(
                         CommandOptions.collectOptions(
                                 new String[] {
@@ -59,12 +64,25 @@ public class Dope4jAppIT {
                                     "-cache=true",
                                     "-cacheFolder=_cache",
                                     "-cameraInfo=../config/camera_info.yaml",
-                                    "-debug=true"
+                                    "-debug=true",
+                                    "-exportMetricsToCsv=" + metricsFolder.toString()
                                 }),
                         new PrintStream(out))
                 .run();
         dope4jResults = jsonUtils.readDope4jResults(out.toByteArray());
         dope4jResults.forEach(System.out::println);
+
+        assertMetrics();
+    }
+
+    private static void assertMetrics() throws IOException {
+        var counter = metricsFolder.resolve("counter.csv");
+        Assertions.assertEquals(true, counter.toFile().exists());
+        Assertions.assertEquals(true, Files.readString(counter).contains("solvepnp_iterative"));
+
+        var histogram = metricsFolder.resolve("histogram.csv");
+        Assertions.assertEquals(true, histogram.toFile().exists());
+        Assertions.assertEquals(true, Files.readString(histogram).contains("pose_calc_time_ms"));
     }
 
     static Stream<Path> testDataProvider() throws IOException {
