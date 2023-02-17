@@ -119,6 +119,8 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder, AutoClose
     public void runInference() throws Exception {
         if (commandOptions.isOptionTrue("debug")) XLogger.load("logging-dope4j-debug.properties");
         var imagePath = Paths.get(commandOptions.getRequiredOption("imagePath"));
+        if (!imagePath.toFile().exists())
+            throw new RuntimeException("Path does not exist: " + imagePath);
         LOGGER.info("Image path: {}", imagePath.toAbsolutePath());
         if (commandOptions.isOptionTrue("cache")) {
             cacheFileMapper =
@@ -127,7 +129,7 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder, AutoClose
                             .map(Paths::get)
                             .or(() -> XFiles.TEMP_FOLDER.map(p -> p.resolve(CACHE_FOLDER_NAME)))
                             .or(() -> Optional.of(Paths.get(CACHE_FOLDER_NAME).toAbsolutePath()))
-                            .map(CacheFileMapper::new);
+                            .map(cacheFolder -> new CacheFileMapper(imagePath, cacheFolder));
             LOGGER.info("Cache folder: {}", cacheFileMapper.get().getCacheHome());
         }
         var cameraInfoPath = commandOptions.getRequiredOption("cameraInfo");
@@ -175,8 +177,6 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder, AutoClose
                             LOGGER.info("Camera info: {}", cameraInfo);
                             objectsDecoder.cameraInfo = cameraInfo;
                         });
-        if (!imagePath.toFile().exists())
-            throw new RuntimeException("Path does not exist: " + imagePath);
         var imageFilesList = listImageFiles(imagePath);
         LOGGER.info("Found {} images to run inference on", imageFilesList.size());
         if (imageFilesList.isEmpty())
@@ -205,6 +205,10 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder, AutoClose
     }
 
     private void configureMetrics(MetricExporter exporter) {
+        if (sdkMeterProvider.isPresent()) {
+            LOGGER.warn("Metrics already configured, not configuring them second time");
+            return;
+        }
         var metricReader =
                 PeriodicMetricReader.builder(exporter).setInterval(Duration.ofSeconds(3)).build();
         var provider = SdkMeterProvider.builder().registerMetricReader(metricReader).build();

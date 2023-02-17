@@ -17,6 +17,7 @@
  */
 package id.dope4j.impl;
 
+import id.xfunction.nio.file.XPaths;
 import java.nio.file.Path;
 
 /**
@@ -29,20 +30,34 @@ import java.nio.file.Path;
 public class CacheFileMapper {
 
     private Path cacheHome;
+    private Path imagePath;
 
-    public CacheFileMapper(Path cacheHome) {
+    /**
+     * @param imagePath used to resolve path of incoming image files to the path inside cache.
+     *     Example for imagePath /1/2/3 and cacheHome /tmp/_cache the image file /1/2/3/4/5 will be
+     *     resolved to /tmp/_cache/4/5
+     */
+    public CacheFileMapper(Path imagePath, Path cacheHome) {
+        this.imagePath = imagePath;
         this.cacheHome = cacheHome;
     }
 
     public Path getTensorFile(Path imageFile) {
-        return imageFile.resolveSibling(cacheHome.resolve(imageFile.getFileName() + ".tensor"));
+        return XPaths.appendToFullFileName(map(imageFile), ".tensor");
     }
 
     public Path getProcessedImageFile(Path imageFile) {
-        return imageFile.resolveSibling(cacheHome.resolve(imageFile.getFileName() + ".png"));
+        return XPaths.appendToFullFileName(map(imageFile), ".png");
     }
 
     public Path getCacheHome() {
         return cacheHome;
+    }
+
+    private Path map(Path path) {
+        if (path.startsWith(imagePath)) path = imagePath.relativize(path).normalize();
+        // if still absolute - remove root
+        if (path.isAbsolute()) path = path.subpath(1, path.getNameCount());
+        return cacheHome.resolve(path);
     }
 }

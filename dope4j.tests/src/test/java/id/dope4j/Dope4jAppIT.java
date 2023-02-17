@@ -62,7 +62,7 @@ public class Dope4jAppIT {
                                     "-imagePath=" + imagePath,
                                     "-objectSize=4.947199821472168,2.9923000335693359,8.3498001098632812",
                                     "-cache=true",
-                                    "-cacheFolder=_cache",
+                                    "-cacheFolder=" + imagePath.resolve("_cache"),
                                     "-cameraInfo=../config/camera_info.yaml",
                                     "-debug=true",
                                     "-exportMetricsToCsv=" + metricsFolder.toString()
