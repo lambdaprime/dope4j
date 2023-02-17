@@ -40,6 +40,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.stream.IntStream;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
@@ -201,5 +202,16 @@ public class Utils {
                                         converters.copyToPoint(e.getPointA(), scale),
                                         converters.copyToPoint(e.getPointB(), scale),
                                         color));
+        IntStream.range(0, Cuboid2D.VERTEX_COUNT)
+                .forEach(
+                        i -> {
+                            Imgproc.putText(
+                                    mat,
+                                    "v" + (i + 1),
+                                    converters.copyToPoint(cuboid.getVertices().get(i)),
+                                    Imgproc.FONT_HERSHEY_PLAIN,
+                                    scale,
+                                    color);
+                        });
     }
 }
