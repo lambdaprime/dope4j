@@ -21,8 +21,8 @@ dependencies {
     "com.fasterxml.jackson.module:jackson-module-parameter-names",
     "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
   ]);
-  addDependencies(this, ["implementation", "apiElements"], "1.0-SNAPSHOT", [
-    "io.github.lambdaprime:opentelemetry-exporters-pack"
+  addDependencies(this, ["implementation", "apiElements"], "1.0", [
+    "io.github.lambdaprime:id.opentelemetry-exporters-pack"
   ]);
 
 }

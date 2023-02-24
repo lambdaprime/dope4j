@@ -142,7 +142,8 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder, AutoClose
                 .ifPresent(
                         uri -> {
                             LOGGER.info("Emitting metrics to ElasticSearch");
-                            var exporter = new ElasticSearchMetricExporter(uri, true);
+                            var exporter =
+                                    new ElasticSearchMetricExporter(uri, Optional.empty(), true);
                             configureMetrics(exporter);
                         });
         commandOptions
