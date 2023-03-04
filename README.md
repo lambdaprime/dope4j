@@ -17,6 +17,8 @@ export LD_LIBRARY_PATH=<PATH_TO_TENSOR_RT/lib:<PATH_TO_CUDNN>/lib
 
 # Documentation
 
+[Run from Docker container](dope4j.app/Run_from_docker.md)
+
 [Conformance to DOPE original results](dope4j.tests/Conformance_to_DOPE.md)
 
 [Development](DEVELOPMENT.md)
@@ -104,6 +106,7 @@ dope4j \
  -objectSize=4.947199821472168,2.9923000335693359,8.3498001098632812 \
  -cameraInfo=/tmp/dope4j/config/camera_info.yaml \
  -imagePath=/tmp/dataset \
+ -recursiveScan=true \
  -showVerticesBeliefs=true \
  -showCenterPointBeliefs=true > /tmp/results.json
 ```
