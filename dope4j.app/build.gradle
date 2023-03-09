@@ -1,3 +1,13 @@
+// include xfunction for updateVersion
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath "io.github.lambdaprime:id.xfunction:14.0"
+  }
+}
+
 plugins {
   id 'com.diffplug.spotless'
 }
@@ -12,18 +22,14 @@ dependencies {
     exclude group: "org.slf4j", module: "slf4j-simple"
   }
   
-  addDependencies(this, ["implementation"], "1.7.36", [
-    "org.slf4j:slf4j-jdk14"
-  ]);
-  addDependencies(this, ["implementation", "apiElements"], "2.14.1", [
-    "com.fasterxml.jackson.core:jackson-databind",
-    "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-    "com.fasterxml.jackson.module:jackson-module-parameter-names",
-    "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
-  ]);
-  addDependencies(this, ["implementation", "apiElements"], "1.0", [
-    "io.github.lambdaprime:id.opentelemetry-exporters-pack"
-  ]);
+  implementation "org.slf4j:slf4j-jdk14:1.7.36"
+  implementation "io.github.lambdaprime:id.opentelemetry-exporters-pack:1.0"
+
+  def jacksonVersion = "2.14.1"
+  implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+  implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jacksonVersion}"
+  implementation "com.fasterxml.jackson.module:jackson-module-parameter-names:${jacksonVersion}"
+  implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}"
 
 }
 
@@ -32,7 +38,6 @@ configurations {
 }
 
 jar {
-  println configurations.customConfig
   manifest { 
     attributes 'Implementation-Version': "${rootProject.version}",
     'Main-Class': 'id.dope4j.app.DeepObjectPoseEstimationApp'
@@ -85,7 +90,7 @@ task createPackage(type: Copy, dependsOn: [copyLibs, copyConfig]) {
 
 task cleanRelease(type: Delete) {
   delete "$packageDir"
-  delete "$projectDir/release"
+  delete "$projectDir/release/*-SNAPSHOT.zip"
 }
 
 createRelease.dependsOn createPackage

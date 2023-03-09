@@ -10,46 +10,28 @@ buildscript {
 
 plugins {
   id 'com.diffplug.spotless'
+  id 'java-library'
 }
 
 apply plugin : 'eclipse'
 
 dependencies {
-  addDependencies(this, ["implementation", "apiElements"], "21.0-SNAPSHOT", [
-    "io.github.lambdaprime:id.xfunction",
-  ]);
-  addDependencies(this, ["implementation", "apiElements"], "3.0-SNAPSHOT", [
-    "io.github.lambdaprime:matcv",
-  ]);
-  addDependencies(this, ["implementation", "apiElements"], "4.6.0-0", [
-    "org.openpnp:opencv",
-  ]);
+  api "io.github.lambdaprime:id.xfunction:21.0-SNAPSHOT"
+  api "io.github.lambdaprime:matcv:3.0-SNAPSHOT"
+  api "org.openpnp:opencv:4.6.0-0"
 
   def djlVersion = "0.20.0"
-  addDependencies(this, ["implementation", "apiElements"], "1.13.0-${djlVersion}", [
-    "ai.djl.pytorch:pytorch-jni",
-  ]);
-  addDependencies(this, ["implementation", "apiElements"], djlVersion, [
-    "ai.djl:api",
-    "ai.djl.pytorch:pytorch-engine",
-    "ai.djl.opencv:opencv"
-  ]);
-  implementation("ai.djl.onnxruntime:onnxruntime-engine:${djlVersion}") {
+  api "ai.djl.pytorch:pytorch-jni:1.13.0-${djlVersion}"
+  api "ai.djl:api:${djlVersion}"
+  api "ai.djl.pytorch:pytorch-engine:${djlVersion}"
+  api "ai.djl.opencv:opencv:${djlVersion}"
+  api("ai.djl.onnxruntime:onnxruntime-engine:${djlVersion}") {
     exclude group: "com.microsoft.onnxruntime", module: "onnxruntime"
   }
-  addDependencies(this, ["implementation", "apiElements"], "1.12.1", [
-    "com.microsoft.onnxruntime:onnxruntime_gpu"
-  ]);
-  addDependencies(this, ["implementation", "apiElements"], "1.13.0:linux-x86_64", [
-    "ai.djl.pytorch:pytorch-native-cu117"
-  ]);  
-  addDependencies(this, ["implementation", "apiElements"], "1.7.36", [
-    "org.slf4j:slf4j-api",
-  ]);
-  addDependencies(this, ["implementation", "apiElements"], "1.22.0", [
-    "io.opentelemetry:opentelemetry-api",
-  ]);
-
+  api "com.microsoft.onnxruntime:onnxruntime_gpu:1.12.1"
+  api "ai.djl.pytorch:pytorch-native-cu117:1.13.0:linux-x86_64"
+  api "org.slf4j:slf4j-api:1.7.36"
+  api "io.opentelemetry:opentelemetry-api:1.22.0"
 }
 
 jar {
@@ -59,13 +41,13 @@ jar {
 }
 
 task createRelease(type: Copy) {
-    def out = 'release'
-    from jar.archiveFile
-    into out
+  def out = 'release'
+  from jar.archiveFile
+  into out
 }
 
 task cleanRelease(type: Delete) {
-    delete "$projectDir/release"
+  delete "$projectDir/release/*-SNAPSHOT.zip"
 }
 
 assemble.dependsOn createRelease
