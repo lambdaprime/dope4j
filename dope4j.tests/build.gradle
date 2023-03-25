@@ -46,9 +46,20 @@ jacocoTestCoverageVerification {
   afterEvaluate {
     classDirectories.setFrom(files(classDirectories.files.collect {
       fileTree(dir: it, exclude:  [
-        // none
+        'id/dope4j/exceptions/*'
       ])
     }))
+  }
+  violationRules {
+    rule {
+      enabled = true
+      element = 'PACKAGE'
+      limit {
+        counter = 'LINE'
+        value = 'COVEREDRATIO'
+        minimum = 0.5
+      }
+    }
   }
 }
 

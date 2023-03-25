@@ -88,7 +88,7 @@ javadoc.enabled = false
 task createPackage(type: Copy, dependsOn: [copyLibs, copyConfig]) {
   from "${project.rootDir}/README.md"
   from "${project.rootDir}/LICENSE-2.0.txt"
-  from file("$projectDir/src/dope4j")
+  from file("$projectDir/src/dope4j-app")
   into packageDir
 }
 
@@ -106,11 +106,12 @@ classes.dependsOn spotlessApply
 
 task updateVersion() {
   // update version only when it is specified and non SNAPSHOT version is built
-  if (version || version.contains("SNAPSHOT")) return;
+  // 'unspecified' is the default value for the version in Gradle if it is not set
+  if (!version || version == "unspecified" || version.contains("SNAPSHOT")) return;
   println "Updating version to " + version
   new id.xfunction.text.Substitutor()
     .withRegexpSupport()
-    .substitute(java.nio.file.Paths.get("Dockerfile"), Map.of(
+    .substitute(java.nio.file.Paths.get("dope4j.app/Dockerfile"), Map.of(
       "dope4j-app-v[0-9.]+.zip", "dope4j-app-v" + version + ".zip"
     ));
 }

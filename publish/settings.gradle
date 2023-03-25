@@ -1,0 +1,4 @@
+// list of subprojects to publish to Sonatype repo
+
+include 'dope4j'
+project(':dope4j').projectDir = new File(rootDir, '../dope4j')

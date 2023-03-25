@@ -17,7 +17,6 @@
  */
 package id.dope4j.impl;
 
-import id.xfunction.nio.file.XPaths;
 import java.nio.file.Path;
 
 /**
@@ -43,11 +42,11 @@ public class CacheFileMapper {
     }
 
     public Path getTensorFile(Path imageFile) {
-        return XPaths.appendToFullFileName(map(imageFile), ".tensor");
+        return appendToFullFileName(map(imageFile), ".tensor");
     }
 
     public Path getProcessedImageFile(Path imageFile) {
-        return XPaths.appendToFullFileName(map(imageFile), ".png");
+        return appendToFullFileName(map(imageFile), ".png");
     }
 
     public Path getCacheHome() {
@@ -59,5 +58,11 @@ public class CacheFileMapper {
         // if still absolute - remove root
         if (path.isAbsolute()) path = path.subpath(1, path.getNameCount());
         return cacheHome.resolve(path);
+    }
+
+    /** TODO migrate to XPaths */
+    private static Path appendToFullFileName(Path path, String postfix) {
+        var folder = path.getParent();
+        return folder.resolve(path.getFileName() + postfix);
     }
 }
