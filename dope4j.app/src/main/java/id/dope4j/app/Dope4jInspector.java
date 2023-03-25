@@ -51,6 +51,7 @@ class Dope4jInspector implements Inspector {
     private boolean showProjectedCuboids2D;
     private Optional<SaveStateToCacheDecoder> saveStateOpt;
     private PrintStream out;
+    private int lineThickness;
 
     Dope4jInspector(
             PrintStream out,
@@ -62,7 +63,8 @@ class Dope4jInspector implements Inspector {
             boolean showAffinityFields,
             boolean showMatchedVertices,
             boolean showCuboid2D,
-            boolean showProjectedCuboids2D) {
+            boolean showProjectedCuboids2D,
+            int lineThickness) {
         this.out = out;
         this.mat = mat;
         this.inputImage = inputImage;
@@ -72,6 +74,7 @@ class Dope4jInspector implements Inspector {
         this.showMatchedVertices = showMatchedVertices;
         this.showCuboid2D = showCuboid2D;
         this.showProjectedCuboids2D = showProjectedCuboids2D;
+        this.lineThickness = lineThickness;
         saveStateOpt = cacheFileMapper.map(SaveStateToCacheDecoder::new);
     }
 
@@ -108,7 +111,14 @@ class Dope4jInspector implements Inspector {
                 cuboid.getVertices().stream()
                         .filter(v -> v != null)
                         .map(v -> converters.copyToPoint(v, DopeConstants.SCALE_FACTOR))
-                        .forEach(v -> Imgproc.line(mat, centerPoint, v, RgbColors.GREEN));
+                        .forEach(
+                                v ->
+                                        Imgproc.line(
+                                                mat,
+                                                centerPoint,
+                                                v,
+                                                RgbColors.GREEN,
+                                                lineThickness));
             }
             showImage = true;
         }
@@ -120,7 +130,8 @@ class Dope4jInspector implements Inspector {
                                             mat,
                                             cuboid,
                                             DopeConstants.SCALE_FACTOR,
-                                            RgbColors.GREEN));
+                                            RgbColors.GREEN,
+                                            lineThickness));
             showImage = true;
         }
     }
@@ -128,11 +139,11 @@ class Dope4jInspector implements Inspector {
     @Override
     public void inspectKeypoints(OutputKeypoints keypoints) {
         if (showVerticesBeliefs) {
-            keypoints.vertices().forEach(l -> Utils.drawKeypoints(mat, l));
+            keypoints.vertices().forEach(l -> Utils.drawKeypoints(mat, l, lineThickness));
             showImage = true;
         }
         if (showCenterPointBeliefs) {
-            Utils.drawKeypoints(mat, keypoints.centerPoints());
+            Utils.drawKeypoints(mat, keypoints.centerPoints(), lineThickness);
             showImage = true;
         }
     }
@@ -141,7 +152,11 @@ class Dope4jInspector implements Inspector {
     public void inspectPoses(OutputPoses poses) {
         out.println(new Dope4jResult(inputImage.path(), poses).toString());
         if (showProjectedCuboids2D) {
-            poses.objects2d().forEach(cuboid -> Utils.drawCuboid2D(mat, cuboid, 1, RgbColors.RED));
+            poses.objects2d()
+                    .forEach(
+                            cuboid ->
+                                    Utils.drawCuboid2D(
+                                            mat, cuboid, 1, RgbColors.RED, lineThickness));
             showImage = true;
         }
     }

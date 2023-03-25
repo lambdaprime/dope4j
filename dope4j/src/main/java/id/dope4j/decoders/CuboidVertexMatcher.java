@@ -84,14 +84,14 @@ public class CuboidVertexMatcher {
     }
 
     private static final int VERTEX_COUNT = 8;
-    private static final Meter METER =
+    private final Meter METER =
             GlobalOpenTelemetry.getMeter(CuboidVertexMatcher.class.getSimpleName());
-    private static final LongHistogram CENTER_POINTS =
+    private final LongHistogram CENTER_POINTS =
             METER.histogramBuilder("center_points")
                     .setDescription("Number of center points against which to match vertices")
                     .ofLongs()
                     .build();
-    private static final LongHistogram MATCHER_TIME_METER =
+    private final LongHistogram MATCHER_TIME_METER =
             METER.histogramBuilder("matcher_time_ms")
                     .setDescription("Center points matcher time in millis")
                     .ofLongs()

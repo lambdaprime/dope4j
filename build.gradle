@@ -10,7 +10,7 @@ gradle publishToMavenLocal \
 
 plugins {
   id 'java'
-  id 'com.diffplug.spotless' version '6.7.2'
+  id 'com.diffplug.spotless' version '6.17.0'
 }
 
 allprojects {
@@ -59,10 +59,6 @@ subprojects {
   }
 
   pluginManager.withPlugin("com.diffplug.spotless", spotlessConfig);
-}
-
-ext {
-  releaseFileName = "${projectName}-v${version}.zip"
 }
 
 // gradlew requires execution of gradle-wrapper.jar which trustworthy needs to

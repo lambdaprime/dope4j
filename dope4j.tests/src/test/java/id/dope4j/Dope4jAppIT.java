@@ -19,12 +19,10 @@ package id.dope4j;
 
 import id.dope4j.app.DeepObjectPoseEstimationApp;
 import id.dope4j.app.Dope4jResult;
-import id.dope4j.io.OutputPoses;
 import id.dope4j.jackson.JsonUtils;
 import id.xfunction.cli.CommandOptions;
 import id.xfunction.nio.file.FilePredicates;
 import id.xfunction.nio.file.XFiles;
-import id.xfunctiontests.XAsserts;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -41,7 +39,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class Dope4jAppIT {
 
-    private static final double POSE_DELTA = 0.0999;
     private static final JsonUtils jsonUtils = new JsonUtils();
     private static final Path imagePath = Paths.get("testset");
     private static final Path metricsFolder =
@@ -95,19 +92,7 @@ public class Dope4jAppIT {
         var expected = findResult(dopeResults, image).detectedPoses();
         var actual = findResult(dope4jResults, image).detectedPoses();
         Assertions.assertEquals(expected.size(), actual.size());
-        assertPoses(expected, actual);
-    }
-
-    private void assertPoses(OutputPoses expected, OutputPoses actual) {
-        var expectedPoses = expected.poses();
-        var actualPoses = actual.poses();
-        for (int i = 0; i < expectedPoses.size(); i++) {
-            var expectedPose = expectedPoses.get(i).position();
-            var actualPose = actualPoses.get(i).position();
-            XAsserts.assertSimilar(expectedPose.getX(), actualPose.getX(), POSE_DELTA);
-            XAsserts.assertSimilar(expectedPose.getY(), actualPose.getY(), POSE_DELTA);
-            XAsserts.assertSimilar(expectedPose.getZ(), actualPose.getZ(), POSE_DELTA);
-        }
+        TestUtils.assertPoses(expected, actual);
     }
 
     /** Finds results for current test image */

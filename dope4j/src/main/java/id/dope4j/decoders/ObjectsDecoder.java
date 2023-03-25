@@ -21,6 +21,7 @@ import static id.dope4j.impl.Utils.debugNDArray;
 
 import ai.djl.ndarray.NDArray;
 import id.deeplearningutils.modality.cv.output.Cuboid3D;
+import id.dope4j.DopeConstants;
 import id.dope4j.exceptions.DopeException;
 import id.dope4j.io.InputImage;
 import id.dope4j.io.OutputKeypoints;
@@ -49,22 +50,21 @@ public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectsDecoder.class);
     private static final DopeDecoderUtils decoderUtils = new DopeDecoderUtils();
-    private static final Meter METER =
-            GlobalOpenTelemetry.getMeter(ObjectsDecoder.class.getSimpleName());
-    private static final LongCounter INPUT_TENSORS_TOTAL =
+    private final Meter METER = GlobalOpenTelemetry.getMeter(ObjectsDecoder.class.getSimpleName());
+    private final LongCounter INPUT_TENSORS_TOTAL =
             METER.counterBuilder("input_tensors_total")
                     .setDescription("Total number of received tensors to be decoded")
                     .build();
-    private static final LongCounter DETECTED_OBJECTS_TOTAL =
+    private final LongCounter DETECTED_OBJECTS_TOTAL =
             METER.counterBuilder("detected_objects_total")
                     .setDescription("Total number of objects detected")
                     .build();
-    private static final LongHistogram KEYPOINTS_PER_IMAGE =
+    private final LongHistogram KEYPOINTS_PER_IMAGE =
             METER.histogramBuilder("keypoints_detected")
                     .setDescription("Total number of keypoints detected per image")
                     .ofLongs()
                     .build();
-    private static final LongHistogram DECODE_TIME_METER =
+    private final LongHistogram DECODE_TIME_METER =
             METER.histogramBuilder("decode_time_ms")
                     .setDescription("Decode time in millis")
                     .ofLongs()
@@ -102,10 +102,15 @@ public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
     private double threshold;
     private Optional<Inspector.Builder> inspectorBuilder = Optional.empty();
     public CameraInfo cameraInfo;
-    private Cuboid3D cuboid3DModel;
+    private Cuboid3D objectCuboidModel;
 
-    public ObjectsDecoder(double threshold, Cuboid3D cuboid3DModel, CameraInfo cameraInfo) {
-        this(threshold, cuboid3DModel, cameraInfo, null);
+    /**
+     * @param threshold keypoints threshold value (see {@link DopeConstants#DEFAULT_PEAK_THRESHOLD}
+     *     for more details)
+     * @param objectCuboidModel cuboid 3d model of the object to be detected
+     */
+    public ObjectsDecoder(double threshold, Cuboid3D objectCuboidModel, CameraInfo cameraInfo) {
+        this(threshold, objectCuboidModel, cameraInfo, null);
     }
 
     public ObjectsDecoder(
@@ -114,7 +119,7 @@ public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
             CameraInfo cameraInfo,
             Inspector.Builder inspectorBuilder) {
         this.threshold = threshold;
-        this.cuboid3DModel = cuboid3DModel;
+        this.objectCuboidModel = cuboid3DModel;
         this.cameraInfo = cameraInfo;
         this.inspectorBuilder = Optional.ofNullable(inspectorBuilder);
     }
@@ -131,7 +136,7 @@ public class ObjectsDecoder implements DopeDecoder<OutputPoses> {
             var output = decoderUtils.readDopeOutput(outputTensor);
             var keypoints = decoderUtils.findKeypoints(output, threshold);
             var objects2d = decoderUtils.findObjects(keypoints, output.affinities());
-            var poses = decoderUtils.findPoses(objects2d, cuboid3DModel, cameraInfo);
+            var poses = decoderUtils.findPoses(objects2d, objectCuboidModel, cameraInfo);
             KEYPOINTS_PER_IMAGE.record(keypoints.keypointsCount());
             DETECTED_OBJECTS_TOTAL.add(objects2d.size());
             DECODE_TIME_METER.record(Duration.between(startAt, Instant.now()).toMillis());

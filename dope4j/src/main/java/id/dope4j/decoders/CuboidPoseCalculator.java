@@ -54,24 +54,24 @@ public class CuboidPoseCalculator {
             Map.of(
                     Calib3d.SOLVEPNP_P3P, "SOLVEPNP_P3P",
                     Calib3d.SOLVEPNP_ITERATIVE, "SOLVEPNP_ITERATIVE");
-    private static final Meter METER =
+    private static final MatConverters matConverters = new MatConverters();
+    private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
+    private static final MatUtils utils = new MatUtils();
+    private final Meter METER =
             GlobalOpenTelemetry.getMeter(CuboidPoseCalculator.class.getSimpleName());
-    private static final LongCounter SOLVEPNP_P3P_TOTAL =
+    private final LongCounter SOLVEPNP_P3P_TOTAL =
             METER.counterBuilder("solvepnp_p3p")
                     .setDescription("SOLVEPNP_P3P algorithm used for pose estimation")
                     .build();
-    private static final LongCounter SOLVEPNP_ITERATIVE_TOTAL =
+    private final LongCounter SOLVEPNP_ITERATIVE_TOTAL =
             METER.counterBuilder("solvepnp_iterative")
                     .setDescription("SOLVEPNP_ITERATIVE_TOTAL algorithm used for pose estimation")
                     .build();
-    private static final LongHistogram POSE_CALC_TIME_METER =
+    private final LongHistogram POSE_CALC_TIME_METER =
             METER.histogramBuilder("pose_calc_time_ms")
                     .setDescription("Pose calculation time in millis")
                     .ofLongs()
                     .build();
-    private static final MatConverters matConverters = new MatConverters();
-    private static final DjlOpenCvConverters converters = new DjlOpenCvConverters();
-    private static final MatUtils utils = new MatUtils();
     private final Cuboid3D cuboidModel3d;
     private final Mat cameraMat;
     private final MatOfDouble distortionMat;

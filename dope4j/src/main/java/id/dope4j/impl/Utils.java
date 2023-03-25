@@ -159,7 +159,8 @@ public class Utils {
     //    }
 
     /** Draws markers at the given points */
-    public static void drawKeypoints(Mat image, Collection<? extends Point> points) {
+    public static void drawKeypoints(
+            Mat image, Collection<? extends Point> points, int lineThickness) {
         Preconditions.equals(DopeConstants.IMAGE_HEIGHT, image.rows(), "Image height is wrong");
         Preconditions.equals(DopeConstants.IMAGE_WIDTH, image.cols(), "Image width is wrong");
         points.forEach(
@@ -167,7 +168,8 @@ public class Utils {
                         Imgproc.drawMarker(
                                 image,
                                 converters.copyToPoint(p, DopeConstants.SCALE_FACTOR),
-                                RgbColors.GREEN));
+                                RgbColors.GREEN,
+                                lineThickness));
     }
 
     public static void drawAffinityFields(Mat image, AffinityFields fields) {
@@ -193,7 +195,8 @@ public class Utils {
         }
     }
 
-    public static void drawCuboid2D(Mat mat, Cuboid2D cuboid, double scale, Scalar color) {
+    public static void drawCuboid2D(
+            Mat mat, Cuboid2D cuboid, double scale, Scalar color, int lineThickness) {
         cuboid.getEdges()
                 .forEach(
                         e ->
@@ -201,7 +204,8 @@ public class Utils {
                                         mat,
                                         converters.copyToPoint(e.getPointA(), scale),
                                         converters.copyToPoint(e.getPointB(), scale),
-                                        color));
+                                        color,
+                                        lineThickness));
         IntStream.range(0, Cuboid2D.VERTEX_COUNT)
                 .forEach(
                         i -> {
@@ -211,7 +215,8 @@ public class Utils {
                                     converters.copyToPoint(cuboid.getVertices().get(i)),
                                     Imgproc.FONT_HERSHEY_PLAIN,
                                     scale,
-                                    color);
+                                    color,
+                                    lineThickness);
                         });
     }
 }

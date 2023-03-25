@@ -22,6 +22,7 @@ gradle eclipse
 
 - Close version in gradle.properties
 - Run `gradle clean build javadoc`
+- Check that Dockerfile version updated
 - Publish
 - Open next SNAPSHOT version
 - Commit changes

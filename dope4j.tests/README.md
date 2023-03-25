@@ -2,11 +2,14 @@
 
 ```
 export LD_LIBRARY_PATH=<PATH_TO_TENSOR_RT/lib:<PATH_TO_CUDNN>/lib
+export CHOCOLATE_PUDDING_ONNX_MODEL_PATH=<PATH TO DOPE ORIGINAL ChocolatePudding.onnx>
 ```
+
+To create `ChocolatePudding.onnx` follow the instructions from [Quickstart to isaac_ros_pose_estimation](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/blob/c6a666d2fb6b3304a71fb7d3d928316fd2ce9510/README.md#quickstart).
 
 # Gathering DOPE original results
 
-`calc_dope_results.py` runs DOPE original decoder for all images in `testset` folder and stores all results to results.json file. This file later used by tests for comparison with `dope4j` results.
+`calc_dope_results.py` runs DOPE original decoder for all images in `testset` folder and stores all results to results.json file. This file later used by tests for comparison with `dope4j` results. See [Conformance to DOPE original results](xxxxx) for more details.
 
 Run instructions:
 

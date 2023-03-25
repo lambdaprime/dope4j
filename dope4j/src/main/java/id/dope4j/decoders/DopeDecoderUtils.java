@@ -71,9 +71,9 @@ import org.slf4j.LoggerFactory;
 public class DopeDecoderUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DopeDecoderUtils.class);
-    private static final Meter METER =
+    private final Meter METER =
             GlobalOpenTelemetry.getMeter(DopeDecoderUtils.class.getSimpleName());
-    private static final LongHistogram FINDKEYPOINTS_TIME_METER =
+    private final LongHistogram FINDKEYPOINTS_TIME_METER =
             METER.histogramBuilder("findkeypoints_time_ms")
                     .setDescription("Find keypoints time in millis")
                     .ofLongs()
@@ -82,6 +82,7 @@ public class DopeDecoderUtils {
     private MatUtils utils = new MatUtils();
     private OpenCvKit openCvKit = new OpenCvKit();
 
+    /** Wraps network output tensor to data class */
     public OutputTensor readDopeOutput(NDArray tensor) {
         Shape tensorShape = tensor.getShape();
         Preconditions.equals(3, tensorShape.dimension(), "Tensor shape dimensions is wrong");
@@ -106,8 +107,8 @@ public class DopeDecoderUtils {
      * Belief Maps. There is one Belief Map per each cuboid vertex (total 8). Center point beliefs
      * are on the last Belief Map.
      *
-     * <p>{@link DopeConstants#PEAK_THRESHOLD} allows to configure which predictions are ignored and
-     * which not.
+     * <p>{@link DopeConstants#DEFAULT_PEAK_THRESHOLD} allows to configure which predictions are
+     * ignored and which are not.
      */
     public OutputKeypoints findKeypoints(OutputTensor output, double threshold) {
         var startAt = Instant.now();

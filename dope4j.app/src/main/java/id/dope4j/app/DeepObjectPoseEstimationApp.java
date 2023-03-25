@@ -158,26 +158,14 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder, AutoClose
                                 e.printStackTrace();
                             }
                         });
-        objectsDecoder =
-                new ObjectsDecoder(
-                        commandOptions
-                                .getOption("threshold")
-                                .map(Double::parseDouble)
-                                .orElse(DopeConstants.DEFAULT_PEAK_THRESHOLD),
-                        newCuboid(objectSize),
-                        jsonUtils.readCameraInfo(Paths.get(cameraInfoPath)),
-                        this);
-        commandOptions
-                .getOption("cameraInfo")
-                .map(Paths::get)
-                .ifPresent(
-                        path -> {
-                            LOGGER.info("Reading camera info from: {}", path);
-                            var cameraInfo =
-                                    objectsDecoder.cameraInfo = jsonUtils.readCameraInfo(path);
-                            LOGGER.info("Camera info: {}", cameraInfo);
-                            objectsDecoder.cameraInfo = cameraInfo;
-                        });
+        var cameraInfo = jsonUtils.readCameraInfo(Paths.get(cameraInfoPath));
+        var objectModel = newCuboid(objectSize);
+        var threshold =
+                commandOptions
+                        .getOption("threshold")
+                        .map(Double::parseDouble)
+                        .orElse(DopeConstants.DEFAULT_PEAK_THRESHOLD);
+        objectsDecoder = new ObjectsDecoder(threshold, objectModel, cameraInfo, this);
         var imageFilesList = listImageFiles(imagePath);
         LOGGER.info("Found {} images to run inference on", imageFilesList.size());
         if (imageFilesList.isEmpty())
@@ -288,7 +276,8 @@ public class DeepObjectPoseEstimationApp implements Inspector.Builder, AutoClose
                 commandOptions.isOptionTrue("showAffinityFields"),
                 commandOptions.isOptionTrue("showMatchedVertices"),
                 commandOptions.isOptionTrue("showCuboids2D"),
-                commandOptions.isOptionTrue("showProjectedCuboids2D"));
+                commandOptions.isOptionTrue("showProjectedCuboids2D"),
+                commandOptions.getOption("lineThickness").map(Integer::parseInt).orElse(2));
     }
 
     @Override

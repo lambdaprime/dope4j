@@ -14,6 +14,8 @@ plugins {
 
 apply plugin : 'eclipse'
 
+def releaseFileName = "${projectName}-app-v${version}.zip"
+
 dependencies {
   implementation(project ":dope4j")
 
@@ -81,6 +83,8 @@ task copyReadme(type: Copy) {
 // overwrite template README which comes from resources folder
 jar.dependsOn copyReadme
 
+javadoc.enabled = false
+
 task createPackage(type: Copy, dependsOn: [copyLibs, copyConfig]) {
   from "${project.rootDir}/README.md"
   from "${project.rootDir}/LICENSE-2.0.txt"
@@ -99,3 +103,15 @@ clean.dependsOn cleanRelease
 
 // run spotless and format code before the build
 classes.dependsOn spotlessApply
+
+task updateVersion() {
+  // update version only when it is specified and non SNAPSHOT version is built
+  if (version || version.contains("SNAPSHOT")) return;
+  println "Updating version to " + version
+  new id.xfunction.text.Substitutor()
+    .withRegexpSupport()
+    .substitute(java.nio.file.Paths.get("Dockerfile"), Map.of(
+      "dope4j-app-v[0-9.]+.zip", "dope4j-app-v" + version + ".zip"
+    ));
+}
+createRelease.dependsOn updateVersion

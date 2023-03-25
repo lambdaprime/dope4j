@@ -41,36 +41,48 @@ import org.slf4j.LoggerFactory;
 /**
  * Service to run inference.
  *
+ * <p>To perform inference this service requires path to DOPE network and {@link DopeDecoder}
+ * implementation. Each input image is sent to the DOPE network and network output results are
+ * decoded with {@link DopeDecoder}.
+ *
+ * <p>Network knows how to detect only one class of objects. It means that all detected poses will
+ * be for different objects present on the image where all these objects belong to the same class.
+ *
+ * @param <R> type of the service output inference results
  * @author lambdaprime intid@protonmail.com
  */
-public class DeepObjectPoseEstimationService<T> extends LazyService {
+public class DeepObjectPoseEstimationService<R> extends LazyService {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(DeepObjectPoseEstimationService.class);
-    private static final Meter METER =
+
+    private final Meter METER =
             GlobalOpenTelemetry.getMeter(DeepObjectPoseEstimationService.class.getSimpleName());
-    private static final LongCounter ANALYZE_COUNTER =
+    private final LongCounter ANALYZE_COUNTER =
             METER.counterBuilder("analyze").setDescription("Number of method calls").build();
-    private static final LongCounter IMAGES_COUNTER =
+    private final LongCounter IMAGES_COUNTER =
             METER.counterBuilder("input_images")
                     .setDescription("Total number of input images")
                     .build();
-    private static final LongCounter ANALYZED_IMAGES_COUNTER =
+    private final LongCounter ANALYZED_IMAGES_COUNTER =
             METER.counterBuilder("analyzed_images")
                     .setDescription("Total number of images analyzed")
                     .build();
-
-    private String modelUrl;
+    private String networkUrl;
     private Model model;
-    private DopeTranslator<T> translator;
+    private DopeTranslator<R> translator;
 
-    public DeepObjectPoseEstimationService(String modelUrl, DopeDecoder<T> decoder) {
-        this.modelUrl = modelUrl;
+    public DeepObjectPoseEstimationService(String networkUrl, DopeDecoder<R> decoder) {
+        this.networkUrl = networkUrl;
         translator = new DopeTranslator<>(decoder);
     }
 
-    /** Perform batch inference */
-    public List<T> analyze(Path... images) throws DopeException {
+    /**
+     * Perform batch inference.
+     *
+     * @return poses of all detected objects which are of the same class
+     */
+    public List<R> analyze(Path... images) throws DopeException {
         startLazy();
         ANALYZE_COUNTER.add(1);
         IMAGES_COUNTER.add(images.length);
@@ -114,6 +126,9 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
         }
     }
 
+    /**
+     * @hidden exclude from javadoc
+     */
     @Override
     protected void onStart() {
         LOGGER.info("Engine name: {}", Engine.getDefaultEngineName());
@@ -121,15 +136,18 @@ public class DeepObjectPoseEstimationService<T> extends LazyService {
         LOGGER.info("GPU count: {}", Engine.getInstance().getGpuCount());
         LOGGER.info("CUDA version: {}", CudaUtils.getCudaVersion());
         try {
-            model = Utils.loadModel(modelUrl);
+            model = Utils.loadModel(networkUrl);
         } catch (Exception e) {
-            throw new DopeException("Could not load model " + modelUrl, e);
+            throw new DopeException("Could not load model " + networkUrl, e);
         }
     }
 
+    /**
+     * @hidden exclude from javadoc
+     */
     @Override
     protected void onClose() {
-        LOGGER.info("Closing model {}", modelUrl);
+        LOGGER.info("Closing model {}", networkUrl);
         model.close();
     }
 }

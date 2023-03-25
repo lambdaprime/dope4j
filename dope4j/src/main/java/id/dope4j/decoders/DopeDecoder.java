@@ -36,6 +36,9 @@ import java.util.Optional;
  *   <li>everything above
  * </ul>
  *
+ * <p>The {@link DopeDecoder} allows users to chose in which format they want to receive inference
+ * results.
+ *
  * <p>Must be thread safe.
  *
  * @param <R> output type of the decoder

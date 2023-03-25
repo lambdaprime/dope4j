@@ -18,7 +18,7 @@ RUN echo 'ubuntu:ubuntu' | chpasswd
 RUN apt install -y openjdk-17-jre
 
 ARG WORKSPACE=/home/ubuntu
-COPY release/dope4j*zip $WORKSPACE
+COPY release/dope4j-app-v1.0-SNAPSHOT.zip $WORKSPACE
 
 RUN unzip $WORKSPACE/dope4j*zip -d $WORKSPACE
 

@@ -15,6 +15,8 @@ plugins {
 
 apply plugin : 'eclipse'
 
+def releaseFileName = "${projectName}-v${version}.zip"
+  
 dependencies {
   api "io.github.lambdaprime:id.xfunction:21.0-SNAPSHOT"
   api "io.github.lambdaprime:matcv:3.0-SNAPSHOT"
@@ -38,6 +40,18 @@ jar {
   manifest { 
     attributes 'Implementation-Version': "${rootProject.version}"
   }
+}
+
+javadoc {
+  options.noTimestamp = true
+  options.noQualifiers = ["all"]
+  options.noTree = true
+  options.noIndex = true
+  options.noNavBar = true
+  options.overview = "src/overview.html"
+  // ignore missing @return, @param etc
+  options.addBooleanOption('Xdoclint:all,-missing', true)
+  exclude 'id/dope4j/impl/**'
 }
 
 task createRelease(type: Copy) {

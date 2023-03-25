@@ -27,6 +27,7 @@ import ai.djl.modality.cv.util.NDImageUtils;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.translate.Batchifier;
+import ai.djl.translate.TranslateException;
 import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import id.dope4j.decoders.DopeDecoder;
@@ -38,7 +39,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Whatever exception is thrown by {@link Translator} will be thrown by {@link Predictor} as {@link
  * TranslateException} and the prediction will stop. To avoid this and keep prediction going we use
- * {@link Optional} and return {@link Optional#empty()} in case of errors.
+ * {@link Optional} and return {@link Optional#empty()} in case of errors (the errors are logged).
  *
  * @author lambdaprime intid@protonmail.com
  */

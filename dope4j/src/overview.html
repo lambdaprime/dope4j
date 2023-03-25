@@ -1,0 +1,21 @@
+<body>
+<b>dope4j</b> - provides access to <a href="https://github.com/NVlabs/Deep_Object_Pose">Deep Object Pose Estimation (DOPE)</a> models from Java. Based on <a href="https://djl.ai">Deep Java Library</a>.
+
+<h1>Usage</h1>
+<pre>
+// cuboid model of ChocolatePudding which network was trained on
+var objectCuboidModel = new Cuboid3D(new Point3D(),
+  4.947199821472168, 2.9923000335693359, 8.3498001098632812);
+var dopeService = new Dope4jFactory().createPoseEstimationService(
+  "/models/ChocolatePudding.onnx", objectCuboidModel, cameraInfo);
+System.out.println(dopeService.analyze(imageFile));
+</pre>
+
+To create "ChocolatePudding.onnx" follow the instructions from <a href="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/blob/c6a666d2fb6b3304a71fb7d3d928316fd2ce9510/README.md#quickstart">Quickstart to isaac_ros_pose_estimation</a>.
+
+<p>
+<a href="http://portal2.atwebpages.com/dope4j">Documentation</a><br/>
+<a href="https://github.com/lambdaprime/dope4j">Download</a><br/>
+<a href="https://github.com/lambdaprime/dope4j">GitHub repository</a><br/>
+</body>
+
