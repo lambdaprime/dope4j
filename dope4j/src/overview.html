@@ -13,6 +13,16 @@ System.out.println(dopeService.analyze(imageFile));
 
 To create "ChocolatePudding.onnx" follow the instructions from <a href="https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/blob/c6a666d2fb6b3304a71fb7d3d928316fd2ce9510/README.md#quickstart">Quickstart to isaac_ros_pose_estimation</a>.
 
+<h1>Metrics</h1>
+
+<b>dope4j</b> integrated with <a href="https://opentelemetry.io">OpenTelemetry</a> for emitting metrics.
+OpenTelemetry is similar to <a href="http://www.slf4j.org/">SLF4J</a> in that it serves as a simple facade or
+abstraction for various observability backends (<a href="https://prometheus.io">Prometheus</a>, <a href="https://www.elastic.co/elasticsearch/">Elasticsearch</a> etc).
+On top of that it is available for many programming languages.
+
+<p>If you plan to export metrics to Elasticsearch or CSV files you can try <a href="https://github.com/lambdaprime/opentelemetry-exporters-pack">opentelemetry-exporters-pack</a>. For complete list of available exporters for OpenTelemetry see
+<a href="https://opentelemetry.io/ecosystem/registry/">Registry for OpenTelemetry ecosystem</a>.
+ 
 <p>
 <a href="http://portal2.atwebpages.com/dope4j">Documentation</a><br/>
 <a href="https://github.com/lambdaprime/dope4j">Download</a><br/>
