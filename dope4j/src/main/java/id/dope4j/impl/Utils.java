@@ -197,6 +197,7 @@ public class Utils {
 
     public static void drawCuboid2D(
             Mat mat, Cuboid2D cuboid, double scale, Scalar color, int lineThickness) {
+        if (cuboid.getMissingVertexCount() != 0) return;
         cuboid.getEdges()
                 .forEach(
                         e ->
