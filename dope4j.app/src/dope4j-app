@@ -45,9 +45,10 @@ import java.nio.file.*;
      * return classpath string.
      */
     static String resolveRuntimeDependencies() throws Exception {
-        var libsClasspathEntry = BASE_DIR.resolve("libs").resolve("*").toString();
+        var libsClasspathEntry = BASE_DIR.resolve("libs").toString() + "/*";
         var cmdList = new ArrayList<String>(List.of(
             "java", "-cp", libsClasspathEntry, "id.depresolve.app.Main"));
+        Optional.ofNullable(System.getenv("MAVEN_REPOSITORY")).ifPresent(repoHome -> cmdList.addAll(List.of("--repo-home", repoHome)));
         cmdList.addAll(RUNTIME_DEPENDENCIES);
         var proc = new ProcessBuilder(cmdList).redirectError(ProcessBuilder.Redirect.INHERIT).start();
         var out = new BufferedReader(new InputStreamReader(proc.getInputStream())).lines();
