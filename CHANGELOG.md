@@ -1,5 +1,6 @@
 # Version 2
 
+- Adding Windows support
 - Moving documentation out, updating javadoc, adding test for DeepObjectPoseEstimationService
 - Updating to gradle 8.0.2
 - Adding Docker support
